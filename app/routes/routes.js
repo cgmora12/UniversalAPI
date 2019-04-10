@@ -17,7 +17,10 @@ module.exports = function(app, db) {
 		var endpoint = req.query.endpoint
 
 		if(typeof endpoint !== 'undefined' && endpoint){
-			http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+			// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries
+			//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+			
+			http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fclass%0D%0AWHERE+%7B%0D%0A++%3Fs+a+%3Fclass+.%0D%0A%7D%0D%0ALIMIT+25%0D%0AOFFSET+0&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
 			  let data = '';
 
 			  // A chunk of data has been recieved.
@@ -32,16 +35,24 @@ module.exports = function(app, db) {
 
 				// Return data to users formatted in JSON
 				//
-			  	res.json({a: JSON.parse(data)})
+				var results = data
+				try {
+				    results = JSON.parse(data)
+				} catch (e) {
+				    if (e instanceof SyntaxError) {
+				        console.log(e)
+				    }
+				}
+			  	res.json({results: data, query: 'SPARQL query'})
 			  });
 
 			}).on("error", (err) => {
 			  console.log("Error: " + err.message);
-			  res.send('API to LOD -> Error')
+			  res.json({error: 'API to LOD -> Error'})
 			});
 		}
 		else {
-			  res.send('API to LOD -> Missing parameter "endpoint"')
+			  res.json({error: 'API to LOD -> Missing parameter "endpoint"'})
 		}
 	});
 };

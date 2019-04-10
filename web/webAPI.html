@@ -35,13 +35,13 @@
                 <h1>Universal API to LOD<small><br> Automatically generating SPARQL queries to access LOD endpoints</small></h1>
             </div>
         </div>
-        <br><br>
+        <br>
 
         <div class="row">
             <div class="col-lg-8">
                 <h3>Request</h3>
 
-                <div class="form-group">
+                <div class="row form-group">
                     <div class="col-sm-3 col-sm-offset-1 form-group">
                         <label>SPARQL Endpoint</label>
                     </div>
@@ -49,11 +49,11 @@
                         <input class="form-control " id="endpoint">
                     </div>
                     <div class="col-sm-4 form-group">
-                        <input type="button" class="btn btn-primary" onclick="documentation();" value="Get endpoint documentation (OpenAPI 3.0)"/>
+                        <input type="button" class="btn btn-secondary" onclick="documentation();" value="Get endpoint documentation"/>
                     </div>
                 </div>
 
-                <div class="form-group">
+                <div class="row form-group">
                     <div class="col-sm-3 col-sm-offset-1 form-group">
                         <label>Path</label>
                     </div>
@@ -81,14 +81,16 @@
                 <div class="panel-group">
                     <div class="panel panel-default">
                         <div class="">
-                            <input type="button" class="btn btn-primary btn-block" onclick="seeQuery();" value="See the auto-generated SPARQL query" />
+                            <input type="button" class="btn btn-secondary btn-block" onclick="seeQuery();" value="See the auto-generated SPARQL query" />
                         </div>
-                        <div id="collapse1" class="panel-collapse collapse in" aria-expanded="true" style="">
+                        <br><br>
+                        <div id="collapse" class="" style="display: none;">
                             <div class="panel-body">
-                                <textarea id="query" readonly="true" class="form-control" style="height: 231px; margin: 0px -105px 0px 0px; width: 822px;"></textarea>
+                                <textarea id="query" readonly="true" class="form-control" style="height: 190px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
                             </div>
                         </div>
                     </div>
+                    <br><br>
                 </div>
             </div>
 
@@ -109,7 +111,7 @@
                 </h4>
                 <h4>
                     <a href="" id="Bio2RDF">InterPro Bio2RDF</a> 
-                    (<a target="_blank" href="http://173.212.240.179:61000/fuseki/sparql">SPARQL</a>)
+                    (<a target="_blank" href="http://bio2rdf.org/sparql">SPARQL</a>)
                 </h4>
                 <h4>
                     ...
