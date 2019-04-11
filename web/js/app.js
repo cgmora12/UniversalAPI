@@ -3,11 +3,13 @@ window.onload = function() {
 	// Set example endpoints
     $('#GeoLinkedData').click(function(){ GeoLinkedData(); return false; });
     $('#RISM').click(function(){ RISM(); return false; });
-    $('#AEMET').click(function(){ GeoLinkedData(); return false; });
-    $('#Bio2RDF').click(function(){ GeoLinkedData(); return false; });
+    $('#AEMET').click(function(){ AEMET(); return false; });
+    $('#Bio2RDF').click(function(){ Bio2RDF(); return false; });
 }
 
 function send(){
+	$('#sendQuery').prop('disabled', true);
+
 	var url = '/UniversalAPIQuery'
 	url += '?endpoint=' + $('#endpoint').val()
 
@@ -17,6 +19,7 @@ function send(){
 		//dataType: "text",
 		responseType:'application/json',
 		success: function (data) {
+			$('#sendQuery').prop('disabled', false);
 			if(data){
 				console.log(data)
 				if(data.results || data.error){

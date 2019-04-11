@@ -61,16 +61,14 @@
                         <input class="form-control" id="endpoint">
                     </div>
                     <div class="col-sm-4 form-group">
-                        <input type="button" class="btn btn-primary btn-block" onclick="send();" value="Send" />
+                        <input id="sendQuery" type="button" class="btn btn-primary btn-block" onclick="send();" value="Send" />
                     </div>
                 </div>
 
                 <div class="form-group">
                     <h3>Result</h3>
-                    <div class="col-sm-2">
-                    </div>
-                    <div class="col-sm-10">
-                        <textarea id="textareaResult" readonly="true" class="form-control col-lg-9" placeholder="{ ... }" style="height: 190px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
+                    <div class="col-sm-12 col-lg-12">
+                        <textarea id="textareaResult" readonly="true" class="form-control col-lg-9" placeholder="{ ... }" style="max-width: 100%; height: 190px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
                     </div>
                 </div>
 
