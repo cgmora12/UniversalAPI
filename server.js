@@ -4,7 +4,7 @@ const express        = require('express');
 const bodyParser     = require('body-parser');
 const app            = express();
 
-const port = 8081;
+const port = 8091;
 require('./app/routes')(app, {});
 
 //app.use(bodyParser.urlencoded({ extended: true }));
@@ -17,7 +17,14 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(express.static('web'));
+//app.use('/', express.static(__dirname + '/web'));
+app.use('/UniversalAPI/web', express.static(__dirname + '/web'));
+app.use('/UniversalAPI/web/images', express.static(__dirname + '/web/images'));
+//app.use('/images', express.directory(__dirname + '/web/images'));
+app.use('/UniversalAPI/web/css', express.static(__dirname + '/web/css'));
+//app.use('/css', express.directory(__dirname + '/web/css'));
+app.use('/UniversalAPI/web/js', express.static(__dirname + '/web/js'));
+//app.use('/js', express.directory(__dirname + '/web/js'));
 
 app.listen(port, () => {
   console.log('We are live on ' + port);
