@@ -92,7 +92,7 @@ module.exports = function(app, db) {
 				        console.log(e)
 				    }
 				}
-			  	res.json({results: data, query: 'SPARQL query'})
+			  	res.json({results: data, query: sparql})
 			  });
 
 			}).on("error", (err) => {

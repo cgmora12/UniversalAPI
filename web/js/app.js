@@ -48,14 +48,6 @@ function documentation(){
 	alert('documentation')
 }
 
-function seeQuery(){
-	if($('#collapse').is(':visible')){
-		$('#collapse').hide()
-	} else {
-		$('#collapse').show()
-	}
-}
-
 function GeoLinkedData(){
 	$('#endpoint').val('http://geo.linkeddata.es/sparql')
 }
