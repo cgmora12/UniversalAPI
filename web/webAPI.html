@@ -15,8 +15,8 @@
 
         <meta name="author" content="César González Mora and WAKE group (University of Alicante)">
 
-        <link rel="icon" type="image/png" href="/img/favicon.png" sizes="64x64">
-        <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+        <link rel="icon" type="image/png" href="images/rdf.png" sizes="64x64">
+        <link rel="shortcut icon" type="image/x-icon" href="images/rdf.ico">
         
         <style>
             .blue {
@@ -30,15 +30,25 @@
     </head>
 
     <body class="container">
-        <div class="row">
+        <div class="row" style="margin-top: 10px;">
             <div class="col-lg-12">
-                <h1>Universal API to LOD<small><br> Automatically generating SPARQL queries to access LOD endpoints</small></h1>
+                <h1> <img border="0" alt="GitHub" src="images/rdf.png" width="80" height="80" style="margin: 5px;"> Universal API to LOD<small><br>Automatically generating SPARQL queries to access LOD endpoints</small></h1>
             </div>
         </div>
         <br>
 
         <div class="row">
             <div class="col-lg-8">
+
+                <div class="form-group">
+                    <h3>Info</h3>
+                    <div class="col-sm-12 col-lg-12" style="overflow: hidden;">
+                        <p>The Universal API can be queried by using <a href="https://wake.dlsi.ua.es/UniversalAPI" target="_blank">this website</a> or programmatically pointing at <a href="https://wake.dlsi.ua.es/UniversalAPIQuery" target="_blank">UniversalAPIQuery</a> and using the paremeters 'endpoint' and 'query'. </p>
+                        <p>An example of using the API directly will be the following: <a target="_blank" href="https://wake.dlsi.ua.es/UniversalAPIQuery?endpoint=http://bio2rdf.org/sparql&query=SELECT+%3Fsubject+%3Fpredicate+%3Fobject%0D%0AWHERE+%7B%3Fsubject+%3Fpredicate+%3Fobject%7D+%0D%0ALIMIT+100">https://wake.dlsi.ua.es/UniversalAPIQuery?endpoint=http://bio2rdf.org/sparql&query=SELECT+%3Fsubject+%3Fpredicate+%3Fobject%0D%0AWHERE+%7B%3Fsubject+%3Fpredicate+%3Fobject%7D+%0D%0ALIMIT+100</a></p>
+                        <p>More details at <a href="https://github.com/cgmora12/UniversalAPI" target="_blank">GitHub page</a>.</p>
+                    </div>
+                </div>
+
                 <h3>Request</h3>
 
                 <div class="row form-group">
@@ -55,10 +65,10 @@
 
                 <div class="row form-group">
                     <div class="col-sm-3 col-sm-offset-1 form-group">
-                        <label>Path</label>
+                        <label>Path / SPARQL query</label>
                     </div>
                     <div class="col-sm-4 form-group">
-                        <input class="form-control" id="endpoint">
+                        <input class="form-control" id="path">
                     </div>
                     <div class="col-sm-4 form-group">
                         <input id="sendQuery" type="button" class="btn btn-primary btn-block" onclick="send();" value="Send" />
@@ -126,6 +136,7 @@
             <div class="col-lg-6 footer">
                 © 2019 WaKe, University of Alicante
                 <a href="https://wake.dlsi.ua.es"> </a>
+                <a href="https://github.com/cgmora12/UniversalAPI" target="_blank"><img border="0" alt="GitHub" src="images/GitHub-Mark.png" width="40" height="40" style="margin: 5px;" align="right">
                 <br>
                 <br>
             </div>

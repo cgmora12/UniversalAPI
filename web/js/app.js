@@ -11,7 +11,7 @@ function send(){
 	$('#sendQuery').prop('disabled', true);
 
 	var url = '/UniversalAPIQuery'
-	url += '?endpoint=' + $('#endpoint').val()
+	url += '?endpoint=' + $('#endpoint').val() + '&path=' + $('#path').val()
 
 	$.ajax({
 		url: url,
