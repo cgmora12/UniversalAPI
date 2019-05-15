@@ -8,6 +8,7 @@ var documentation
 var finishedAsync
 var response
 var path
+var pathParameters = []
 
 module.exports = function(app, db) {
 	// Web in HTML
@@ -61,7 +62,7 @@ module.exports = function(app, db) {
 				sparqlQuery(sparql, sparqlGraph, format, debug, timeout)
 			} else if(documentationParameter === "true"){
 						console.log('documentation: ' + documentationParameter)
-						//TODO: get documentation
+						//get documentation
 						initDoc()
 						getEndpointClasses()
 			} else {
@@ -69,17 +70,21 @@ module.exports = function(app, db) {
 					if(path.charAt(0) == '/'){
 						console.log('path: ' + path)
 						// autogenerate sparql
-						//TODO: query the endpoint to get possible paths or generate the SPARQL query from users query
-						//sparql = 'SELECT DISTINCT ?class WHERE { ?s a ?class . }'
+						// generate sparql query with resource and properties
+						
+						//generateSparql(path);
 						getEndpointClassesFromResource()
 					} else {
 						// query sparl
 						sparql = path
 						console.log('sparql: ' + sparql)
+						sparqlQuery(sparql)
 					}
 				} else {
 					// Get all triples
-					sparql = 'SELECT ?subject ?predicate ?object WHERE {?subject ?predicate ?object} LIMIT 100'
+					sparql = 'SELECT ?subject ?predicate ?object WHERE {?subject ?predicate ?object}' //' LIMIT 100'
+
+					sparqlQuery(sparql)
 				}
 			}
 
@@ -148,7 +153,7 @@ function getClassesProperties(paths) {
   	for(i=0;i<paths.length;i++)
     {
         var pathValue = paths[i];
-		//TODO: wait for properties get request
+		// wait for properties get request
 		getClassProperties(pathValue, addPathToDoc)
     }
 }
@@ -274,7 +279,7 @@ function getEndpointClassesFromResource(){
 		    }
 		}
 
-		var paths = []
+		//var paths = []
 	  	var jsonPaths = results.results.bindings
 	  	var i;
 	  	for(i=0;i<jsonPaths.length;i++)
@@ -283,25 +288,118 @@ function getEndpointClassesFromResource(){
             var value = jsonObject1.class["value"];
             var valueShortened = pathShortener(value);
 			//console.log(value)
-			paths.push(valueShortened)
+			//paths.push(valueShortened)
 
-			var pathResource = path.substring(1)
+			var pathResource = path
+			var parameters = []
+			try {
+				if(path.split('/').length <= 2){
+					pathResource = path.split('?')[0].substring(1)
+					parameters = path.split('?')[1].split('&')
+				} else {
+					pathResource = path.split('?')[0].split('/')[1]
+					parameters = path.split('?')[1].split('&')
+				}
+		    } catch(e) {
+		        console.log(e);
+		    }
+
 			if(pathResource === valueShortened){
 				//TODO: se podría llamar directamente sin comprobar si ese recurso existe (?)
-				console.log("generateSparql")
-				generateSparql(value)
+				console.log("generateSparql: pathResource=" + pathResource + " parameters=" + JSON.stringify(parameters))
+				getClassPropertiesFromParameters(value, parameters, generateSparql)
 				return;
 			}
         }
+
+	  	response.json({error: 'API to LOD -> Error generating the SPARQL query: check that the endpoint and the path are correct...'})
 
 	  });
 	});
 };
 
 // API to SPARQL function
-function generateSparql(pathToResource){
-	//var sparql = 'SELECT ?subject ?label WHERE { ?subject rdf:type <' + pathToResource + '> . ?subject rdfs:label ?label }'
-	var sparql = 'SELECT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + '> . ?subject ?predicate ?object }'
+function getClassPropertiesFromParameters(pathValue, parameters, callback){
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }') + '&format=application%2Fsparql-results%2Bjson'
+	//console.log(httpGet)
+
+	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	http.get(httpGet, (resp) => {
+	  let data = '';
+
+	  // A chunk of data has been recieved.
+	  resp.on('data', (chunk) => {
+	    data += chunk;
+	  });
+
+	  // The whole response has been received. Print out the result.
+	  resp.on('end', () => {
+	  	//console.log("data: " + data);
+	  	//res.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+		// Return data to users formatted in JSON
+		//
+		var results = data
+		try {
+		    results = JSON.parse(data)
+		} catch (e) {
+		    if (e instanceof SyntaxError) {
+		        console.log(e)
+		    }
+		}
+
+		//var properties = []
+		var newParameters = []
+	  	var jsonProperties = results.results.bindings
+	  	var i;
+	  	for(i=0;i<jsonProperties.length;i++)
+        {
+            var jsonObject1 = jsonProperties[i]
+            var value = jsonObject1.property["value"]
+            var valueShortened = pathShortener(value)
+			//console.log(value)
+			//properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
+			try{
+				var j
+				for(j=0; j<parameters.length; j++){
+					if(valueShortened === parameters[j].split('=')[0]){
+						newParameters.push({name: value, value: parameters[j].split('=')[1]})
+					}
+				}
+			} catch(e){
+				console.log(e)
+			}
+        }
+
+        callback(pathValue, newParameters)
+
+	  });
+	});
+}
+
+// API to SPARQL function
+function generateSparql(pathToResource, parameters){
+	// TODO: generate query taking PARAMETER value (search for resources) into account
+	var sparql = 'SELECT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
+		'> . ?subject ?predicate ?object . ';
+	
+	try{
+		var i 
+		for(i = 0; i < parameters.length; i++){
+			sparql += ' ?subject <' + parameters[i].name + '> <' + parameters[i].value + '> '
+		}
+	} catch(e){
+		console.log(e)
+	}
+
+	sparql += '}'
+
+	console.log("sparql query generated: " + sparql)
+
+
 	var httpGet = endpoint + '?query=' + escape(sparql)  + '&format=application%2Fsparql-results%2Bjson'
 	console.log(httpGet)
 
@@ -342,8 +440,13 @@ function generateSparql(pathToResource){
 }
 
 // SPARQL to endpoint function
-function sparqlQuery(endpoint, sparqlGraph, format, debug, timeout){
-	var httpGet = req.query.endpoint + '?query=' + sparql + '&default-graph-uri=' + sparqlGraph + '&format=' + format + '&debug=' + debug + '&timeout=' + timeout
+function sparqlQuery(sparql, sparqlGraph, format, debug, timeout){
+	var httpGet
+	if(sparqlGraph === undefined || format === undefined || debug === undefined || timeout === undefined){
+		httpGet = endpoint + '?query=' + sparql + '&format=application%2Fsparql-results%2Bjson'
+	} else {
+		httpGet = endpoint + '?query=' + sparql + '&default-graph-uri=' + sparqlGraph + '&format=' + format + '&debug=' + debug + '&timeout=' + timeout
+	}
 	console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -373,11 +476,11 @@ function sparqlQuery(endpoint, sparqlGraph, format, debug, timeout){
 		        console.log(e)
 		    }
 		}
-	  	res.json({results: data, query: sparql})
+	  	response.json({results: data, query: sparql})
 	  });
 
 	}).on("error", (err) => {
 	  console.log("Error: " + err.message);
-	  res.json({error: 'API to LOD -> Error'})
+	  response.json({error: 'API to LOD -> Error'})
 	});
 };
