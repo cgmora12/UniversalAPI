@@ -45,7 +45,34 @@ function send(){
 }
 
 function documentation(){
-	alert('documentation')
+	$('#documentation').prop('disabled', true);
+
+	var url = '/UniversalAPIQuery'
+	url += '?endpoint=' + $('#endpoint').val() + "&documentation=true"
+
+	$.ajax({
+		url: url,
+		//dataType: 'jsonp',
+		//dataType: "text",
+		responseType:'application/json',
+		success: function (data) {
+			$('#documentation').prop('disabled', false);
+			if(data){
+				console.log(data)
+				if(data.results || data.error){
+					if(data.results){
+						$('#textareaResult').val(data.results);
+					}
+					if(data.error){
+						$('#textareaResult').val(data.error);
+					}
+				}
+				else {
+					$('#textareaResult').val('');
+				}
+			}
+		}
+	});
 }
 
 function GeoLinkedData(){
