@@ -182,27 +182,28 @@ function getClassProperties(pathValue, addPathToDoc){
 
 		// Return data to users formatted in JSON
 		//
+		var properties = []
 		var results = data
 		try {
 		    results = JSON.parse(data)
+
+		  	var jsonProperties = results.results.bindings
+		  	var i;
+		  	for(i=0;i<jsonProperties.length;i++)
+	        {
+	            var jsonObject1 = jsonProperties[i];
+	            var value = jsonObject1.property["value"];
+				//console.log(value)
+				properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
+	        }
+
 		} catch (e) {
 		    if (e instanceof SyntaxError) {
 		        console.log(e)
 		    }
 		}
 
-		var properties = []
-	  	var jsonProperties = results.results.bindings
-	  	var i;
-	  	for(i=0;i<jsonProperties.length;i++)
-        {
-            var jsonObject1 = jsonProperties[i];
-            var value = jsonObject1.property["value"];
-			//console.log(value)
-			properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
-        }
-
-        addPathToDoc(pathValue, properties)
+	    addPathToDoc(pathValue, properties)
 	  });
 	});
 }
