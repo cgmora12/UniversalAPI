@@ -62,6 +62,21 @@ function documentation(){
 				if(data.results || data.error){
 					if(data.results){
 						$('#textareaResult').val(data.results);
+						var blob = new Blob([data.results], {
+						    type: "text/plain;charset=utf-8;",
+						});
+						var filename = "endpointOpenAPI.json";
+						if(window.navigator.msSaveOrOpenBlob) {
+					        window.navigator.msSaveBlob(blob, filename);
+					    }
+					    else{
+					        var elem = window.document.createElement('a');
+					        elem.href = window.URL.createObjectURL(blob);
+					        elem.download = filename;        
+					        document.body.appendChild(elem);
+					        elem.click();        
+					        document.body.removeChild(elem);
+					    }
 					}
 					if(data.error){
 						$('#textareaResult').val(data.error);
