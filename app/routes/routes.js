@@ -82,7 +82,7 @@ module.exports = function(app, db) {
 					}
 				} else {
 					// Get all triples
-					sparql = 'SELECT ?subject ?predicate ?object WHERE {?subject ?predicate ?object}' //' LIMIT 100'
+					sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject ?predicate ?object}' //' LIMIT 100'
 
 					sparqlQuery(sparql)
 				}
@@ -384,7 +384,7 @@ function getClassPropertiesFromParameters(pathValue, parameters, callback){
 // API to SPARQL function
 function generateSparql(pathToResource, parameters){
 	// TODO: generate query taking PARAMETER value (search for resources) into account
-	var sparql = 'SELECT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
+	var sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
 		'> . ?subject ?predicate ?object . ';
 	
 	try{
@@ -431,7 +431,42 @@ function generateSparql(pathToResource, parameters){
 		        console.log(e)
 		    }
 		}
-	  	response.json({results: data, query: sparql})
+	  	var jsonResults = results.results.bindings
+	  	var jsonResultsParsed = []
+	  	var jsonFinalResults = {results: []}
+	  	var objectNameAux
+	  	var objectName
+	  	var i;
+	  	for(i=0;i<jsonResults.length;i++)
+        {
+        	objectNameAux = pathShortener(jsonResults[i].subject.value)
+        	// TODO: use myObj.cars[Object.keys(myObj.cars)[Object.keys(myObj.cars).length - 1]]
+        	if(i > 0 && objectName === objectNameAux){
+        		//console.log("Same object")
+        		objectName = pathShortener(jsonResults[i].subject.value)
+        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
+	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+	        	var propertyValue = pathShortener(jsonResults[i].object.value)
+				jsonObject[objectName][propertyName] = propertyValue
+				jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]] = jsonObject
+        	} else {
+	        	objectName = pathShortener(jsonResults[i].subject.value)
+	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+	        	var propertyValue = pathShortener(jsonResults[i].object.value)
+
+	            var jsonObject = { }
+	            var jsonObjectProperty = { }
+	            jsonObjectProperty[propertyName] = propertyValue
+	            jsonObject[objectName] = jsonObjectProperty
+				//console.log(value)
+				jsonResultsParsed.push(jsonObject)
+        	}
+        }
+		jsonFinalResults.results = jsonResultsParsed
+		var returnResults = JSON.stringify(jsonFinalResults)
+
+
+	  	response.json({results: returnResults, query: sparql})
 	  });
 
 	}).on("error", (err) => {
