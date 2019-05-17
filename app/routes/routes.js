@@ -435,22 +435,33 @@ function generateSparql(pathToResource, parameters){
 	  	var jsonResultsParsed = []
 	  	var jsonFinalResults = {results: []}
 	  	var objectNameAuxArray = []
+	  	var jsonResultsParsedAux = []
 	  	var objectNameAux
 	  	var objectName
 	  	var yaEncontrado = false
 	  	var i
 	  	for(i=0; i < jsonResults.length; i++)
         {
+        	// Uncomment for debugging ONLY
+        	/*console.log("Check results: ")
+        	console.log(jsonResultsParsed)
+        	var reloj
+        	for(reloj = 0; reloj < 1000000000; reloj++){
+        		reloj = reloj + 1
+        	}*/
+
 		    objectName = pathShortener(jsonResults[i].subject.value)
-        	var j
-        	if(objectName !== objectNameAux){
+        	//console.log("Check last object name from results: " + JSON.stringify(lastAux))
+        	var last = jsonResultsParsedAux[jsonResultsParsedAux.length-1]
+        	if(objectName !== last){
         		// Search for the same JSON Object processed before (but not last one)
+        		var j
 	        	for(j=0; j < objectNameAuxArray.length; j++){
 	        		//console.log(JSON.stringify(Object.keys(objectNameAuxArray[j])[0]))
 					if(objectName === Object.keys(objectNameAuxArray[j])[0]){
 		        		console.log("Same object")
 	        			yaEncontrado = true
-		        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j].objectNameAux]] // search for correct index
+		        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] // search for correct index
 			        	var propertyName = pathShortener(jsonResults[i].predicate.value)
 			        	var propertyValue = pathShortener(jsonResults[i].object.value)
 			        	 // avoid deleting existing properties with same key		
@@ -467,18 +478,20 @@ function generateSparql(pathToResource, parameters){
 			        	} else {
 							jsonObject[objectName][propertyName] = propertyValue
 			        	}
-						jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j].objectNameAux]] = jsonObject
+						jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] = jsonObject
 		        	}
 	        	}
         	}	
-        	// If the last object was the same that this one, merge properties and values
-        	else {
-		        //console.log("Same previous object")
+        	// If the last object in results is the same that this one, merge properties and values
+        	else if(objectName === last){
+		        console.log("Same previous object")
 	        	yaEncontrado = true
 
         		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
 	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
 	        	var propertyValue = pathShortener(jsonResults[i].object.value)
+	        			//console.log(objectName)
+		        		//console.log(JSON.stringify(jsonObject)) 
 	        	 // avoid deleting existing properties with same key		
 	        	if(jsonObject[objectName][propertyName] !== undefined ){
 	        		if(jsonObject[objectName][propertyName] != propertyValue){
@@ -498,6 +511,7 @@ function generateSparql(pathToResource, parameters){
 
         	// If this object wasn't processed before, insert it into the results
         	if(!yaEncontrado) {
+        		console.log("Different object")
 	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
 	        	var propertyValue = pathShortener(jsonResults[i].object.value)
 
@@ -507,6 +521,7 @@ function generateSparql(pathToResource, parameters){
 	            jsonObject[objectName] = jsonObjectProperty
 				//console.log(value)
 				jsonResultsParsed.push(jsonObject)
+				jsonResultsParsedAux.push(objectName)
 				var objAux = { }
 				objAux[objectName] = jsonResultsParsed.length - 1
         		objectNameAuxArray.push(objAux)
@@ -514,6 +529,8 @@ function generateSparql(pathToResource, parameters){
 
         	objectNameAux = pathShortener(jsonResults[i].subject.value)
         	yaEncontrado = false
+		        
+		    //console.log(jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]])
         }
 
 		jsonFinalResults.results = jsonResultsParsed
