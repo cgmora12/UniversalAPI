@@ -459,7 +459,7 @@ function generateSparql(pathToResource, parameters){
 	        	for(j=0; j < objectNameAuxArray.length; j++){
 	        		//console.log(JSON.stringify(Object.keys(objectNameAuxArray[j])[0]))
 					if(objectName === Object.keys(objectNameAuxArray[j])[0]){
-		        		console.log("Same object")
+		        		//console.log("Same object")
 	        			yaEncontrado = true
 		        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] // search for correct index
 			        	var propertyName = pathShortener(jsonResults[i].predicate.value)
@@ -484,7 +484,7 @@ function generateSparql(pathToResource, parameters){
         	}	
         	// If the last object in results is the same that this one, merge properties and values
         	else if(objectName === last){
-		        console.log("Same previous object")
+		        //console.log("Same previous object")
 	        	yaEncontrado = true
 
         		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
@@ -511,7 +511,7 @@ function generateSparql(pathToResource, parameters){
 
         	// If this object wasn't processed before, insert it into the results
         	if(!yaEncontrado) {
-        		console.log("Different object")
+        		//console.log("Different object")
 	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
 	        	var propertyValue = pathShortener(jsonResults[i].object.value)
 
