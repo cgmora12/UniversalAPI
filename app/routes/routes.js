@@ -383,7 +383,7 @@ function getClassPropertiesFromParameters(pathValue, parameters, callback){
 
 // API to SPARQL function
 function generateSparql(pathToResource, parameters){
-	// TODO: generate query taking PARAMETER value (search for resources) into account
+	// generate query taking path and parameter values into account
 	var sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
 		'> . ?subject ?predicate ?object . ';
 	
@@ -434,23 +434,70 @@ function generateSparql(pathToResource, parameters){
 	  	var jsonResults = results.results.bindings
 	  	var jsonResultsParsed = []
 	  	var jsonFinalResults = {results: []}
+	  	var objectNameAuxArray = []
 	  	var objectNameAux
 	  	var objectName
-	  	var i;
-	  	for(i=0;i<jsonResults.length;i++)
+	  	var yaEncontrado = false
+	  	var i
+	  	for(i=0; i < jsonResults.length; i++)
         {
-        	objectNameAux = pathShortener(jsonResults[i].subject.value)
-        	// TODO: use myObj.cars[Object.keys(myObj.cars)[Object.keys(myObj.cars).length - 1]]
-        	if(i > 0 && objectName === objectNameAux){
-        		//console.log("Same object")
-        		objectName = pathShortener(jsonResults[i].subject.value)
+		    objectName = pathShortener(jsonResults[i].subject.value)
+        	var j
+        	if(objectName !== objectNameAux){
+        		// Search for the same JSON Object processed before (but not last one)
+	        	for(j=0; j < objectNameAuxArray.length; j++){
+	        		//console.log(JSON.stringify(Object.keys(objectNameAuxArray[j])[0]))
+					if(objectName === Object.keys(objectNameAuxArray[j])[0]){
+		        		console.log("Same object")
+	        			yaEncontrado = true
+		        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j].objectNameAux]] // search for correct index
+			        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+			        	var propertyValue = pathShortener(jsonResults[i].object.value)
+			        	 // avoid deleting existing properties with same key		
+			        	if(jsonObject[objectName][propertyName] !== undefined ){
+		        			if(jsonObject[objectName][propertyName] != propertyValue){
+				        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
+								   var objectToArrayAux = jsonObject[objectName][propertyName]
+								   jsonObject[objectName][propertyName] = []
+
+								}
+									
+								jsonObject[objectName][propertyName].push(propertyValue)	
+							}			
+			        	} else {
+							jsonObject[objectName][propertyName] = propertyValue
+			        	}
+						jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j].objectNameAux]] = jsonObject
+		        	}
+	        	}
+        	}	
+        	// If the last object was the same that this one, merge properties and values
+        	else {
+		        //console.log("Same previous object")
+	        	yaEncontrado = true
+
         		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
 	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
 	        	var propertyValue = pathShortener(jsonResults[i].object.value)
-				jsonObject[objectName][propertyName] = propertyValue
+	        	 // avoid deleting existing properties with same key		
+	        	if(jsonObject[objectName][propertyName] !== undefined ){
+	        		if(jsonObject[objectName][propertyName] != propertyValue){
+		        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
+						   var objectToArrayAux = jsonObject[objectName][propertyName]
+						   jsonObject[objectName][propertyName] = []
+
+						}
+							
+						jsonObject[objectName][propertyName].push(propertyValue)
+					}			
+	        	} else {
+					jsonObject[objectName][propertyName] = propertyValue
+	        	}
 				jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]] = jsonObject
-        	} else {
-	        	objectName = pathShortener(jsonResults[i].subject.value)
+        	}
+
+        	// If this object wasn't processed before, insert it into the results
+        	if(!yaEncontrado) {
 	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
 	        	var propertyValue = pathShortener(jsonResults[i].object.value)
 
@@ -460,8 +507,15 @@ function generateSparql(pathToResource, parameters){
 	            jsonObject[objectName] = jsonObjectProperty
 				//console.log(value)
 				jsonResultsParsed.push(jsonObject)
+				var objAux = { }
+				objAux[objectName] = jsonResultsParsed.length - 1
+        		objectNameAuxArray.push(objAux)
         	}
+
+        	objectNameAux = pathShortener(jsonResults[i].subject.value)
+        	yaEncontrado = false
         }
+
 		jsonFinalResults.results = jsonResultsParsed
 		var returnResults = JSON.stringify(jsonFinalResults)
 
