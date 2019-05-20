@@ -54,45 +54,108 @@
                             <div class="col-sm-5 form-group">
                                 <input class="form-control " id="endpoint">
                             </div>
-                            <div class="col-sm-3 form-group">
-                                <input id="documentation" type="button" class="btn btn-secondary" onclick="documentation();" value="Get endpoint documentation"/>
+
+                            <div id="collapseDoc" class="col-sm-3 form-group panel-collapse collapse in show">
+                                <input id="documentation" type="button" class="btn" onclick="documentation();" value="Get endpoint documentation"/>
                             </div>
                         </div>
-                        <div class="row form-group col-sm-12 col-lg-12">
-                            <div class="col-sm-3 col-sm-offset-1 form-group">
-                                <label>Path / SPARQL query</label>
+                        <div id="collapseSubmits" class="row form-group panel-collapse collapse in show col-sm-12 col-lg-12">
+                            <div class="col-sm-5 form-group">
+                                <input id="basicQueryBtn" type="button" class="btn btn-primary" onclick="basicQuery();" value="Basic API query"/>
                             </div>
                             <div class="col-sm-5 form-group">
-                                <input class="form-control" id="path">
+                                <input id="sparqlQueryBtn" type="button" class="btn btn-secondary" onclick="sparqlQuery();" value="SPARQL query"/>
                             </div>
-                            <div class="col-sm-3 form-group">
+                        </div>
+                        <div id="collapsePath" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                            <div class="col-sm-3 col-sm-offset-1 form-group">
+                                <label>Path</label>
+                            </div>
+                            <div class="col-sm-8 form-group">
+                                <!--<input class="form-control" id="path">-->
+                                <select class="form-control" id='path'>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="collapseSparqlQuery" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                            <div class="col-sm-3 col-sm-offset-1 form-group">
+                                <label>SPARQL query</label>
+                            </div>
+                            <div class="col-sm-8 form-group">
+                                <input class="form-control" id="sparqlQuery">
+                            </div>
+                        </div>
+                        <div id="collapseCompleteQuery" class="panel-collapse collapse in">
+                            <div id="collapseProperty" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                                <div class="col-sm-3 col-sm-offset-1 form-group">
+                                    <label>Property</label>
+                                </div>
+                                <div class="col-sm-5 form-group">
+                                    <select class="form-control" id='property'>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="collapsePropertyValue" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                                <div class="col-sm-3 col-sm-offset-1 form-group">
+                                    <label>Property Value</label>
+                                </div>
+                                <div class="col-sm-5 form-group">
+                                    <input class="form-control" id="propertyValue">
+                                </div>
+                                <div class="col-sm-5 form-group">
+                                    <input id="addPropertyBtn" type="button" class="btn btn-secondary" onclick="addProperty();" value="Add property (TODO)"/>
+                                </div>
+                            </div>
+                            <div class="">
                                 <input id="sendQuery" type="button" class="btn btn-primary btn-block" onclick="send();" value="Send" />
                             </div>
                         </div>
+
                     </div>
                 </div>
 
-                <div class="form-group panel panel-default">
-                    <div class="panel-heading">
-                        <h3><a data-toggle="collapse" data-parent="#accordion" href="#collapse3">Result</a></h3>
-                    </div>
-                    <div  id="collapse3" class="panel-collapse collapse in show col-sm-12 col-lg-12">
-                        <textarea id="textareaResult" readonly="true" class="form-control col-lg-9" placeholder="{ ... }" style="max-width: 100%; height: 190px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
-                    </div>
-                </div>
 
                 <br>
                 <div style="clear:both"></div>
                 <br>
+                
+                <div id="collapseResults" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                    <div class="form-group panel panel-default">
+                        <div class="panel-heading">
+                            <h3><a data-toggle="collapse" data-parent="#accordion" href="#collapse3">Result</a></h3>
+                        </div>
+                        <div id="collapse3" class="panel-collapse collapse in show col-sm-12 col-lg-12">
+                            <textarea id="textareaResult" readonly="true" class="form-control col-lg-9" placeholder="{ ... }" style="max-width: 100%; height: 190px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
+                        </div>
+                    </div>
 
-                <div class="form-group panel panel-default">
-                    <div class="panel-heading">
-                        <h3><a data-toggle="collapse" data-parent="#accordion" href="#collapse4">Auto-generated SPARQL query</a></h3>
+                    <br>
+                    <div style="clear:both"></div>
+                    <br>
+
+                    <div class="form-group panel panel-default">
+                        <div class="panel-heading">
+                            <h3><a data-toggle="collapse" data-parent="#accordion" href="#collapse5">URL to underlying API</a></h3>
+                        </div>
+                        <div id="collapse5" class="panel-collapse collapse in show col-sm-12 col-lg-12" >
+                            <textarea id="apiquery" readonly="true" class="form-control col-lg-9" placeholder="..." style="max-width: 100%; height: 60px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
+                        </div>
+                        <br><br>
                     </div>
-                    <div id="collapse4" class="panel-collapse collapse in show col-sm-12 col-lg-12" >
-                        <textarea id="query" readonly="true" class="form-control" style="max-width: 100%; height: 190px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
+
+                    <br>
+                    <div style="clear:both"></div>
+                    <br>
+
+                    <div class="form-group panel panel-default">
+                        <div class="panel-heading">
+                            <h3><a data-toggle="collapse" data-parent="#accordion" href="#collapse4">Auto-generated SPARQL query</a></h3>
+                        </div>
+                        <div id="collapse4" class="panel-collapse collapse in show col-sm-12 col-lg-12" >
+                            <textarea id="query" readonly="true" class="form-control" style="max-width: 100%; height: 190px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
+                        </div>
+                        <br><br>
                     </div>
-                    <br><br>
                 </div>
             </div>
 

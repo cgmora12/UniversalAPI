@@ -234,7 +234,11 @@ function initDoc(){
 function createDocumentation(){
 	console.log('createDocumentation')
 
-	response.json({results: JSON.stringify(documentation)})
+	try{
+		response.json({results: JSON.stringify(documentation)})
+	} catch (e) {
+		console.log(e)
+	}
 }
 
 function pathShortener(pathValue){
@@ -281,7 +285,14 @@ function getEndpointClassesFromResource(){
 		}
 
 		//var paths = []
-	  	var jsonPaths = results.results.bindings
+		var jsonPaths = []
+		try {
+		    jsonPaths = results.results.bindings
+		} catch (e) {
+		    if (e instanceof SyntaxError) {
+		        console.log(e)
+		    }
+		}
 	  	var i;
 	  	for(i=0;i<jsonPaths.length;i++)
         {
@@ -293,14 +304,10 @@ function getEndpointClassesFromResource(){
 
 			var pathResource = path
 			var parameters = []
+			//TODO: get parameters correctly
 			try {
-				if(path.split('/').length <= 2){
-					pathResource = path.split('?')[0].substring(1)
-					parameters = path.split('?')[1].split('&')
-				} else {
-					pathResource = path.split('?')[0].split('/')[1]
-					parameters = path.split('?')[1].split('&')
-				}
+				pathResource = path.split('?')[0].substring(1)
+				parameters = path.split('?')[1].split('&')
 		    } catch(e) {
 		        console.log(e);
 		    }
@@ -360,6 +367,7 @@ function getClassPropertiesFromParameters(pathValue, parameters, callback){
         {
             var jsonObject1 = jsonProperties[i]
             var value = jsonObject1.property["value"]
+            //TODO: search parameters (properties) by shortened value
             var valueShortened = pathShortener(value)
 			//console.log(value)
 			//properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
