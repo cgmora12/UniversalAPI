@@ -56,6 +56,9 @@ function basicQueryFill(){
 	$('#collapseSparqlQuery').collapse("hide");
 	$('#collapsePath').collapse("show");
 	$('#collapseCompleteQuery').collapse("show");
+	$('#collapseFormat').collapse("show");
+	$('#collapseSend').collapse("show");
+	$('#collapseSendSparql').collapse("hide");
 
 	// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonResults.paths
 	var options = Object.keys(jsonResults.paths);
@@ -94,7 +97,12 @@ function sparqlQuery(){
 	$('#collapsePath').collapse("hide");
 	$('#collapseSparqlQuery').collapse("show");
 	$('#collapseCompleteQuery').collapse("show");
+	$('#collapseFormat').collapse("show");
 	$('#basicQueryBtn').prop('disabled', false);
+	$('#collapseSend').collapse("hide");
+	$('#collapseSendSparql').collapse("show");
+	$('#collapseProperty').collapse("hide");
+	$('#collapsePropertyValue').collapse("hide");
 }
 
 function documentation(){
@@ -122,6 +130,8 @@ function documentation(){
 					if(data.results || data.error){
 						if(data.results){
 							jsonResults = JSON.parse(data.results);
+							$('#query').val(data.sparql);
+							$('#apiquery').val(url);
 							documentationReady()
 						}
 						if(data.error){
@@ -170,7 +180,7 @@ function send(){
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
 
-	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + '&path=' + $('#path').val()
+	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + '&path=' + $('#path').val()
 	//TODO: check all properties
 	var property = $('#property').val()
 	var propertyValue = $('#propertyValue').val()
@@ -201,7 +211,67 @@ function send(){
 				$('#collapseResults').collapse("show");
 				if(data.results || data.error){
 					if(data.results){
-						$('#textareaResult').val(JSON.stringify(JSON.parse(data.results), null, 2));
+						if($("#format").val() === "triples"){
+							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
+						}
+						else {
+							$('#textareaResult').val(JSON.stringify(JSON.parse(data.results), null, 2));
+						}
+					}
+					if(data.error){
+						$('#textareaResult').val(data.error);
+					}
+				}
+				else {
+					$('#textareaResult').val('');
+				}
+
+				if(data.query){
+					$('#query').val(data.query);
+				} else {
+					$('#query').val('');
+				}
+			}
+		}
+	});
+}
+
+function sendSparql(){
+	$('#sendSparqlQuery').prop('disabled', true);
+	$('#endpoint').prop('disabled', true);
+	$('#documentation').prop('disabled', true);
+	$('#basicQueryBtn').prop('disabled', true);
+	$('#sparqlQueryBtn').prop('disabled', true);
+
+	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + '&query=' + $('#sparqlQuery').val()
+
+	//mostrar url en la interfaz
+	console.log(url)
+	$("#apiquery").val(url)
+
+	$.ajax({
+		url: url,
+		//dataType: 'jsonp',
+		//dataType: "text",
+		responseType:'application/json',
+		success: function (data) {
+			$('#sendSparqlQuery').prop('disabled', false);
+			$('#endpoint').prop('disabled', false);
+			$('#documentation').prop('disabled', false);
+			$('#basicQueryBtn').prop('disabled', false);
+			$('#sparqlQueryBtn').prop('disabled', false);
+
+			if(data){
+				console.log(data)
+				$('#collapseResults').collapse("show");
+				if(data.results || data.error){
+					if(data.results){
+						if($("#format").val() === "triples"){
+							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
+						}
+						else {
+							$('#textareaResult').val(JSON.stringify(JSON.parse(data.results), null, 2));
+						}
 					}
 					if(data.error){
 						$('#textareaResult').val(data.error);

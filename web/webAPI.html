@@ -106,8 +106,23 @@
                                     <input id="addPropertyBtn" type="button" class="btn btn-secondary" onclick="addProperty();" value="Add property (TODO)"/>
                                 </div>
                             </div>
-                            <div class="">
+                            <div id="collapseFormat" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                                <div class="col-sm-3 col-sm-offset-1 form-group">
+                                    <label>Results format</label>
+                                </div>
+                                <div class="col-sm-8 form-group">
+                                    <!--<input class="form-control" id="path">-->
+                                    <select class="form-control" id='format'>
+                                        <option value="json">JSON</option>
+                                        <option value="triples">Triples (JSON)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="collapseSend"class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
                                 <input id="sendQuery" type="button" class="btn btn-primary btn-block" onclick="send();" value="Send" />
+                            </div>
+                            <div id="collapseSendSparql"class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                                <input id="sendSparqlQuery" type="button" class="btn btn-primary btn-block" onclick="sendSparql();" value="Send" />
                             </div>
                         </div>
 
@@ -138,7 +153,7 @@
                             <h3><a data-toggle="collapse" data-parent="#accordion" href="#collapse5">URL to underlying API</a></h3>
                         </div>
                         <div id="collapse5" class="panel-collapse collapse in show col-sm-12 col-lg-12" >
-                            <textarea id="apiquery" readonly="true" class="form-control col-lg-9" placeholder="..." style="max-width: 100%; height: 60px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
+                            <textarea id="apiquery" readonly="true" class="form-control col-lg-9" placeholder="..." style="max-width: 100%; height: 100px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
                         </div>
                         <br><br>
                     </div>

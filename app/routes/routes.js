@@ -8,6 +8,7 @@ var documentation
 var finishedAsync
 var response
 var path
+var format
 var pathParameters = []
 
 module.exports = function(app, db) {
@@ -28,7 +29,7 @@ module.exports = function(app, db) {
 		path = req.query.path
 		var sparql = req.query.query
 		var sparqlGraph = req.query['default-graph-uri']
-		var format = req.query.format
+		format = req.query.format
 		var debug = req.query.debug
 		var timeout = req.query.timeout
 
@@ -59,7 +60,7 @@ module.exports = function(app, db) {
 					timeout = ''
 				}
 
-				sparqlQuery(sparql, sparqlGraph, format, debug, timeout)
+				sparqlQuery(sparql, sparqlGraph, debug, timeout)
 			} else if(documentationParameter === "true"){
 						console.log('documentation: ' + documentationParameter)
 						//get documentation
@@ -81,10 +82,7 @@ module.exports = function(app, db) {
 						sparqlQuery(sparql)
 					}
 				} else {
-					// Get all triples
-					sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject ?predicate ?object}' //' LIMIT 100'
-
-					sparqlQuery(sparql)
+					sparqlQuery()
 				}
 			}
 
@@ -160,7 +158,8 @@ function getClassesProperties(paths) {
 
 // Documentation function
 function getClassProperties(pathValue, addPathToDoc){
-	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }') + '&format=application%2Fsparql-results%2Bjson'
+	sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
+	var httpGet = endpoint + '?query=' + escape(sparql) + '&format=application%2Fsparql-results%2Bjson'
 	//console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -235,7 +234,7 @@ function createDocumentation(){
 	console.log('createDocumentation')
 
 	try{
-		response.json({results: JSON.stringify(documentation)})
+		response.json({results: JSON.stringify(documentation), sparql: sparql})
 	} catch (e) {
 		console.log(e)
 	}
@@ -439,7 +438,102 @@ function generateSparql(pathToResource, parameters){
 		        console.log(e)
 		    }
 		}
-	  	var jsonResults = results.results.bindings
+
+		returnResults(results, sparql)
+	  	
+	  });
+
+	}).on("error", (err) => {
+	  console.log("Error: " + err.message);
+	  response.json({error: 'API to LOD -> Error'})
+	});
+}
+
+// SPARQL to endpoint function
+function sparqlQuery(sparql, sparqlGraph, debug, timeout){
+	var httpGet
+
+	var sparqlGraphParameter = ''
+	var formatParameter = ''
+	var debugParameter = ''
+	var timeoutParameter = ''
+
+	if(sparql === undefined){
+		// Get all triples
+		//TODO: limit como parametro
+		sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject ?predicate ?object}' //' LIMIT 100'
+	}
+
+	if(sparqlGraph !== undefined){
+		sparqlGraphParameter = '&default-graph-uri=' + sparqlGraph
+	}
+
+	if(format !== undefined){
+		if(format==="json"){
+			formatParameter = '&format=application%2Fsparql-results%2Bjson'
+		} else{
+			if(format==="triples"){
+				format = 'application%2Fsparql-results%2Bjson'
+			}
+			formatParameter = '&format=' + format
+		}
+	} 
+
+	if(debug !== undefined){
+		debugParameter = '&debug=' + debug
+	}
+	
+	if(timeout !== undefined){
+		timeoutParameter = '&timeout=' + timeout
+	}
+		
+	httpGet = endpoint + '?query=' + sparql + sparqlGraphParameter + formatParameter + debugParameter + timeoutParameter
+	
+	console.log("httpGet: " + httpGet)
+
+	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	http.get(httpGet, (resp) => {
+	  let data = '';
+
+	  // A chunk of data has been recieved.
+	  resp.on('data', (chunk) => {
+	    data += chunk;
+	  });
+
+	  // The whole response has been received. Print out the result.
+	  resp.on('end', () => {
+	  	//console.log("data: " + data);
+	  	//res.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+		// Return data to users formatted in JSON
+		//
+		var results = data
+		try {
+		    results = JSON.parse(data)
+		} catch (e) {
+		    if (e instanceof SyntaxError) {
+		        console.log(e)
+		    }
+		}
+	  	
+	  	returnResults(results, sparql);
+	  });
+
+	}).on("error", (err) => {
+	  console.log("Error: " + err.message);
+	  response.json({error: 'API to LOD -> Error'})
+	});
+};
+
+function returnResults(results, sparql){
+	console.log("format: " + format)
+	if(format === "application%2Fsparql-results%2Bjson" || format === "triples"){
+	  	response.json({results: results, query: sparql})
+	} else {
+		var jsonResults = results.results.bindings
 	  	var jsonResultsParsed = []
 	  	var jsonFinalResults = {results: []}
 	  	var objectNameAuxArray = []
@@ -546,56 +640,5 @@ function generateSparql(pathToResource, parameters){
 
 
 	  	response.json({results: returnResults, query: sparql})
-	  });
-
-	}).on("error", (err) => {
-	  console.log("Error: " + err.message);
-	  response.json({error: 'API to LOD -> Error'})
-	});
-}
-
-// SPARQL to endpoint function
-function sparqlQuery(sparql, sparqlGraph, format, debug, timeout){
-	var httpGet
-	if(sparqlGraph === undefined || format === undefined || debug === undefined || timeout === undefined){
-		httpGet = endpoint + '?query=' + sparql + '&format=application%2Fsparql-results%2Bjson'
-	} else {
-		httpGet = endpoint + '?query=' + sparql + '&default-graph-uri=' + sparqlGraph + '&format=' + format + '&debug=' + debug + '&timeout=' + timeout
 	}
-	console.log(httpGet)
-
-	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	http.get(httpGet, (resp) => {
-	  let data = '';
-
-	  // A chunk of data has been recieved.
-	  resp.on('data', (chunk) => {
-	    data += chunk;
-	  });
-
-	  // The whole response has been received. Print out the result.
-	  resp.on('end', () => {
-	  	//console.log("data: " + data);
-	  	//res.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
-
-		// Return data to users formatted in JSON
-		//
-		var results = data
-		try {
-		    results = JSON.parse(data)
-		} catch (e) {
-		    if (e instanceof SyntaxError) {
-		        console.log(e)
-		    }
-		}
-	  	response.json({results: data, query: sparql})
-	  });
-
-	}).on("error", (err) => {
-	  console.log("Error: " + err.message);
-	  response.json({error: 'API to LOD -> Error'})
-	});
-};
+}
