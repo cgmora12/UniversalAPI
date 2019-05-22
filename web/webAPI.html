@@ -23,7 +23,7 @@
 
         <div class="row" style="margin-top: 10px;">
             <div class="col-lg-12">
-                <h1> <img border="0" alt="GitHub" src="/UniversalAPI/web/images/rdf.png" width="80" height="80" style="margin: 5px;"> Universal API to LOD<small><br>Automatically generating SPARQL queries to access LOD endpoints</small></h1>
+                <h1> <img border="0" alt="GitHub" src="/UniversalAPI/web/images/rdf.png" width="80" height="80" style="margin: 5px;"> Universal API to Linked Open Data<small><br>Automatically generating SPARQL queries to access LOD endpoints</small></h1>
             </div>
         </div>
         <br>
@@ -48,23 +48,26 @@
                     </div>
                     <div id="collapse2" class="panel-collapse collapse in show">
                         <div class="row form-group col-sm-12 col-lg-12">
-                            <div class="col-sm-3 col-sm-offset-1 form-group">
+                            <div class="col-sm-3 form-group">
                                 <label>SPARQL Endpoint</label>
                             </div>
-                            <div class="col-sm-5 form-group">
+                            <div class="col-10 col-lg-8 form-group">
                                 <input class="form-control " id="endpoint">
                             </div>
-
-                            <div id="collapseDoc" class="col-sm-3 form-group panel-collapse collapse in show">
-                                <input id="documentation" type="button" class="btn" onclick="documentation();" value="Get endpoint documentation"/>
+                            <div id="editEndpoint" class="col-sm-1 col-1 form-group panel-collapse collapse in">
+                                <span class="glyphicon" onclick="editEndpoint(); return false" style="cursor:pointer;">&#x270f;</span>
                             </div>
                         </div>
                         <div id="collapseSubmits" class="row form-group panel-collapse collapse in show col-sm-12 col-lg-12">
-                            <div class="col-sm-5 form-group">
-                                <input id="basicQueryBtn" type="button" class="btn btn-primary" onclick="basicQuery();" value="Basic API query"/>
+                            <div class="col-sm-4 form-group">
+                                <input id="basicQueryBtn" type="button" class="btn btn-primary" onclick="basicQuery();" value="API query"/>
                             </div>
-                            <div class="col-sm-5 form-group">
+                            <div class="col-sm-4 form-group">
                                 <input id="sparqlQueryBtn" type="button" class="btn btn-secondary" onclick="sparqlQuery();" value="SPARQL query"/>
+                            </div>
+
+                            <div id="collapseDoc" class="col-sm-4 form-group panel-collapse collapse in show">
+                                <input id="documentation" type="button" class="btn" onclick="documentation();" value="Get endpoint documentation"/>
                             </div>
                         </div>
                         <div id="collapsePath" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
@@ -86,36 +89,53 @@
                             </div>
                         </div>
                         <div id="collapseCompleteQuery" class="panel-collapse collapse in">
-                            <div id="collapseProperty" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
-                                <div class="col-sm-3 col-sm-offset-1 form-group">
-                                    <label>Property</label>
+                            <div id="collapseProperties"  class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                                <div class="collapseProperty row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                                    <div class="col-sm-3 col-sm-offset-1 form-group">
+                                        <label>Property</label>
+                                    </div>
+                                    <div class="col-sm-5 form-group">
+                                        <select class="form-control property">
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="collapsePropertyValue row form-group panel-collapse collapse in col-sm-12 col-lg-12">
+                                    <div class="col-sm-3 col-sm-offset-1 form-group">
+                                        <label>Property Value</label>
+                                    </div>
+                                    <div class="col-sm-5 form-group">
+                                        <input class="form-control propertyValue" >
+                                    </div>
+                                </div>
+                                <div id="collapseNewProperties"  class="row form-group panel-collapse collapse in show col-sm-12 col-lg-12">
+                                    
                                 </div>
                                 <div class="col-sm-5 form-group">
-                                    <select class="form-control" id='property'>
-                                    </select>
-                                </div>
-                            </div>
-                            <div id="collapsePropertyValue" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
-                                <div class="col-sm-3 col-sm-offset-1 form-group">
-                                    <label>Property Value</label>
-                                </div>
-                                <div class="col-sm-5 form-group">
-                                    <input class="form-control" id="propertyValue">
-                                </div>
-                                <div class="col-sm-5 form-group">
-                                    <input id="addPropertyBtn" type="button" class="btn btn-secondary" onclick="addProperty();" value="Add property (TODO)"/>
+                                    <input id="addPropertyBtn" type="button" class="btn btn-secondary" onclick="addProperty();" value="Add property"/>
                                 </div>
                             </div>
                             <div id="collapseFormat" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
-                                <div class="col-sm-3 col-sm-offset-1 form-group">
+                                <div class="col-sm-3 form-group">
                                     <label>Results format</label>
                                 </div>
-                                <div class="col-sm-8 form-group">
+                                <div class="col-sm-3 form-group">
                                     <!--<input class="form-control" id="path">-->
                                     <select class="form-control" id='format'>
                                         <option value="json">JSON</option>
                                         <option value="triples">Triples (JSON)</option>
                                     </select>
+                                </div>
+                                 <div class="col-sm-1 form-group">
+                                    <label>Limit</label>
+                                </div>
+                                <div class="col-sm-2 form-group">
+                                    <input class="form-control" id="limit">
+                                </div>
+                                 <div class="col-sm-1 form-group">
+                                    <label>Offset</label>
+                                </div>
+                                <div class="col-sm-2 form-group">
+                                    <input class="form-control" id="offset">
                                 </div>
                             </div>
                             <div id="collapseSend"class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">

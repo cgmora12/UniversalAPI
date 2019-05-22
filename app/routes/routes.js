@@ -8,8 +8,11 @@ var documentation
 var finishedAsync
 var response
 var path
+var properties
 var format
-var pathParameters = []
+var limit
+var offset
+var pathProperties = []
 
 module.exports = function(app, db) {
 	// Web in HTML
@@ -27,6 +30,9 @@ module.exports = function(app, db) {
 		endpoint = req.query.endpoint
 		var documentationParameter = req.query.documentation
 		path = req.query.path
+		properties = req.query.properties
+		limit = req.query.limit
+		offset = req.query.offset
 		var sparql = req.query.query
 		var sparqlGraph = req.query['default-graph-uri']
 		format = req.query.format
@@ -234,7 +240,7 @@ function createDocumentation(){
 	console.log('createDocumentation')
 
 	try{
-		response.json({results: JSON.stringify(documentation), sparql: sparql})
+		response.json({results: JSON.stringify(documentation)})
 	} catch (e) {
 		console.log(e)
 	}
@@ -302,19 +308,16 @@ function getEndpointClassesFromResource(){
 			//paths.push(valueShortened)
 
 			var pathResource = path
-			var parameters = []
-			//TODO: get parameters correctly
 			try {
-				pathResource = path.split('?')[0].substring(1)
-				parameters = path.split('?')[1].split('&')
+				pathResource = path.substring(1)
 		    } catch(e) {
 		        console.log(e);
 		    }
 
 			if(pathResource === valueShortened){
 				//TODO: se podría llamar directamente sin comprobar si ese recurso existe (?)
-				console.log("generateSparql: pathResource=" + pathResource + " parameters=" + JSON.stringify(parameters))
-				getClassPropertiesFromParameters(value, parameters, generateSparql)
+				console.log("generateSparql: pathResource=" + pathResource + " properties=" + JSON.stringify(properties))
+				getClassPropertiesFromParameters(value, properties, generateSparql)
 				return;
 			}
         }
@@ -326,7 +329,7 @@ function getEndpointClassesFromResource(){
 };
 
 // API to SPARQL function
-function getClassPropertiesFromParameters(pathValue, parameters, callback){
+function getClassPropertiesFromParameters(pathValue, properties, callback){
 	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }') + '&format=application%2Fsparql-results%2Bjson'
 	//console.log(httpGet)
 
@@ -358,23 +361,30 @@ function getClassPropertiesFromParameters(pathValue, parameters, callback){
 		    }
 		}
 
-		//var properties = []
-		var newParameters = []
+
+		var propertiesJson = properties
+		try { 
+			propertiesJson = JSON.parse(properties)
+		} catch (e) {
+		    if (e instanceof SyntaxError) {
+		        console.log(e)
+		    }
+		}
+		var newProperties = []
 	  	var jsonProperties = results.results.bindings
 	  	var i;
-	  	for(i=0;i<jsonProperties.length;i++)
+	  	for(i=0; i < jsonProperties.length; i++)
         {
             var jsonObject1 = jsonProperties[i]
             var value = jsonObject1.property["value"]
-            //TODO: search parameters (properties) by shortened value
             var valueShortened = pathShortener(value)
 			//console.log(value)
 			//properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
 			try{
 				var j
-				for(j=0; j<parameters.length; j++){
-					if(valueShortened === parameters[j].split('=')[0]){
-						newParameters.push({name: value, value: parameters[j].split('=')[1]})
+				for(j = 0; j < Object.keys(propertiesJson).length; j++){
+					if(valueShortened === unescape(Object.keys(propertiesJson)[j])){
+						newProperties.push({name: value, value: unescape(Object.values(propertiesJson)[j])})
 					}
 				}
 			} catch(e){
@@ -382,28 +392,41 @@ function getClassPropertiesFromParameters(pathValue, parameters, callback){
 			}
         }
 
-        callback(pathValue, newParameters)
+        callback(pathValue, newProperties)
 
 	  });
 	});
 }
 
 // API to SPARQL function
-function generateSparql(pathToResource, parameters){
+function generateSparql(pathToResource, properties){
 	// generate query taking path and parameter values into account
 	var sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
 		'> . ?subject ?predicate ?object . ';
 	
 	try{
 		var i 
-		for(i = 0; i < parameters.length; i++){
-			sparql += ' ?subject <' + parameters[i].name + '> <' + parameters[i].value + '> '
+		for(i = 0; i < properties.length; i++){
+			sparql += ' ?subject <' + properties[i].name + '> ?property' + pathShortener(properties[i].name) + ' '
+			sparql += ' FILTER (?property' + pathShortener(properties[i].name) + ' LIKE \'%' + properties[i].value + '%\') '
 		}
 	} catch(e){
 		console.log(e)
 	}
 
-	sparql += '}'
+	sparql += ' } '
+
+	//TODO: apply limit and offset correctly to improve performance
+	/*try{
+		if(limit){
+			sparql += ' LIMIT ' + limit + ' '
+		}
+		if(offset){
+			sparql += ' OFFSET ' + offset + ' '
+		}
+	} catch (e){
+		console.log(e)
+	}*/
 
 	console.log("sparql query generated: " + sparql)
 
@@ -460,8 +483,16 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 
 	if(sparql === undefined){
 		// Get all triples
-		//TODO: limit como parametro
-		sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject ?predicate ?object}' //' LIMIT 100'
+		var limitParameter = ''
+		var offsetParameter = ''
+		if(limit){
+			limitParameter = ' LIMIT ' + limit
+		}
+		if(offset){
+			offsetParameter = ' OFFSET ' + offset
+		}
+
+		sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject ?predicate ?object} ' + limitParameter + offsetParameter
 	}
 
 	if(sparqlGraph !== undefined){
@@ -487,7 +518,7 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 		timeoutParameter = '&timeout=' + timeout
 	}
 		
-	httpGet = endpoint + '?query=' + sparql + sparqlGraphParameter + formatParameter + debugParameter + timeoutParameter
+	httpGet = endpoint + '?query=' + escape(sparql) + sparqlGraphParameter + formatParameter + debugParameter + timeoutParameter
 	
 	console.log("httpGet: " + httpGet)
 
@@ -530,115 +561,149 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 
 function returnResults(results, sparql){
 	console.log("format: " + format)
-	if(format === "application%2Fsparql-results%2Bjson" || format === "triples"){
-	  	response.json({results: results, query: sparql})
-	} else {
-		var jsonResults = results.results.bindings
-	  	var jsonResultsParsed = []
-	  	var jsonFinalResults = {results: []}
-	  	var objectNameAuxArray = []
-	  	var jsonResultsParsedAux = []
-	  	var objectNameAux
-	  	var objectName
-	  	var yaEncontrado = false
-	  	var i
-	  	for(i=0; i < jsonResults.length; i++)
-        {
-        	// Uncomment for debugging ONLY
-        	/*console.log("Check results: ")
-        	console.log(jsonResultsParsed)
-        	var reloj
-        	for(reloj = 0; reloj < 1000000000; reloj++){
-        		reloj = reloj + 1
-        	}*/
+	try{
+		if(format === "application%2Fsparql-results%2Bjson" || format === "triples"){
 
-		    objectName = pathShortener(jsonResults[i].subject.value)
-        	//console.log("Check last object name from results: " + JSON.stringify(lastAux))
-        	var last = jsonResultsParsedAux[jsonResultsParsedAux.length-1]
-        	if(objectName !== last){
-        		// Search for the same JSON Object processed before (but not last one)
-        		var j
-	        	for(j=0; j < objectNameAuxArray.length; j++){
-	        		//console.log(JSON.stringify(Object.keys(objectNameAuxArray[j])[0]))
-					if(objectName === Object.keys(objectNameAuxArray[j])[0]){
-		        		//console.log("Same object")
-	        			yaEncontrado = true
-		        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] // search for correct index
-			        	var propertyName = pathShortener(jsonResults[i].predicate.value)
-			        	var propertyValue = pathShortener(jsonResults[i].object.value)
-			        	 // avoid deleting existing properties with same key		
-			        	if(jsonObject[objectName][propertyName] !== undefined ){
-		        			if(jsonObject[objectName][propertyName] != propertyValue){
-				        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
-								   var objectToArrayAux = jsonObject[objectName][propertyName]
-								   jsonObject[objectName][propertyName] = []
+	        var limitNumber = results.results.bindings.length
+	        var offsetNumber = 0
+	        try{
+			  	if(limit){
+			  		limitNumber = parseInt(limit)
+			  	}
+			  	if(offset) {
+			  		offsetNumber = parseInt(offset)
+			  	}
+			} catch (e){
+				console.log(e)
+			}
+		  	
+	        results.results.bindings = results.results.bindings.slice(offsetNumber, offsetNumber + limitNumber)
+		  	response.json({results: results, query: sparql})
+		} else {
+			var jsonResults = results.results.bindings
+		  	var jsonResultsParsed = []
+		  	var jsonFinalResults = {results: []}
+		  	var objectNameAuxArray = []
+		  	var jsonResultsParsedAux = []
+		  	var objectNameAux
+		  	var objectName
+		  	var yaEncontrado = false
+		  	var i
+		  	for(i = 0; i < jsonResults.length; i++)
+	        {
+	        	// Uncomment for debugging ONLY
+	        	/*console.log("Check results: ")
+	        	console.log(jsonResultsParsed)
+	        	var reloj
+	        	for(reloj = 0; reloj < 1000000000; reloj++){
+	        		reloj = reloj + 1
+	        	}*/
 
-								}
-									
-								jsonObject[objectName][propertyName].push(propertyValue)	
-							}			
-			        	} else {
-							jsonObject[objectName][propertyName] = propertyValue
+			    objectName = pathShortener(jsonResults[i].subject.value)
+	        	//console.log("Check last object name from results: " + JSON.stringify(lastAux))
+	        	var last = jsonResultsParsedAux[jsonResultsParsedAux.length-1]
+	        	if(objectName !== last){
+	        		// Search for the same JSON Object processed before (but not last one)
+	        		var j
+		        	for(j=0; j < objectNameAuxArray.length; j++){
+		        		//console.log(JSON.stringify(Object.keys(objectNameAuxArray[j])[0]))
+						if(objectName === Object.keys(objectNameAuxArray[j])[0]){
+			        		//console.log("Same object")
+		        			yaEncontrado = true
+			        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] // search for correct index
+				        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+				        	var propertyValue = pathShortener(jsonResults[i].object.value)
+				        	 // avoid deleting existing properties with same key		
+				        	if(jsonObject[objectName][propertyName] !== undefined ){
+			        			if(jsonObject[objectName][propertyName] != propertyValue){
+					        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
+									   var objectToArrayAux = jsonObject[objectName][propertyName]
+									   jsonObject[objectName][propertyName] = []
+
+									}
+										
+									jsonObject[objectName][propertyName].push(propertyValue)	
+								}			
+				        	} else {
+								jsonObject[objectName][propertyName] = propertyValue
+				        	}
+							jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] = jsonObject
 			        	}
-						jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] = jsonObject
 		        	}
+	        	}	
+	        	// If the last object in results is the same that this one, merge properties and values
+	        	else if(objectName === last){
+			        //console.log("Same previous object")
+		        	yaEncontrado = true
+
+	        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
+		        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+		        	var propertyValue = pathShortener(jsonResults[i].object.value)
+		        			//console.log(objectName)
+			        		//console.log(JSON.stringify(jsonObject)) 
+		        	 // avoid deleting existing properties with same key		
+		        	if(jsonObject[objectName][propertyName] !== undefined ){
+		        		if(jsonObject[objectName][propertyName] != propertyValue){
+			        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
+							   var objectToArrayAux = jsonObject[objectName][propertyName]
+							   jsonObject[objectName][propertyName] = []
+
+							}
+								
+							jsonObject[objectName][propertyName].push(propertyValue)
+						}			
+		        	} else {
+						jsonObject[objectName][propertyName] = propertyValue
+		        	}
+					jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]] = jsonObject
 	        	}
-        	}	
-        	// If the last object in results is the same that this one, merge properties and values
-        	else if(objectName === last){
-		        //console.log("Same previous object")
-	        	yaEncontrado = true
 
-        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
-	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
-	        	var propertyValue = pathShortener(jsonResults[i].object.value)
-	        			//console.log(objectName)
-		        		//console.log(JSON.stringify(jsonObject)) 
-	        	 // avoid deleting existing properties with same key		
-	        	if(jsonObject[objectName][propertyName] !== undefined ){
-	        		if(jsonObject[objectName][propertyName] != propertyValue){
-		        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
-						   var objectToArrayAux = jsonObject[objectName][propertyName]
-						   jsonObject[objectName][propertyName] = []
+	        	// If this object wasn't processed before, insert it into the results
+	        	if(!yaEncontrado) {
+	        		//console.log("Different object")
+		        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+		        	var propertyValue = pathShortener(jsonResults[i].object.value)
 
-						}
-							
-						jsonObject[objectName][propertyName].push(propertyValue)
-					}			
-	        	} else {
-					jsonObject[objectName][propertyName] = propertyValue
+		            var jsonObject = { }
+		            var jsonObjectProperty = { }
+		            jsonObjectProperty[propertyName] = propertyValue
+		            jsonObject[objectName] = jsonObjectProperty
+					//console.log(value)
+					jsonResultsParsed.push(jsonObject)
+					jsonResultsParsedAux.push(objectName)
+					var objAux = { }
+					objAux[objectName] = jsonResultsParsed.length - 1
+	        		objectNameAuxArray.push(objAux)
 	        	}
-				jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]] = jsonObject
-        	}
 
-        	// If this object wasn't processed before, insert it into the results
-        	if(!yaEncontrado) {
-        		//console.log("Different object")
-	        	var propertyName = pathShortener(jsonResults[i].predicate.value)
-	        	var propertyValue = pathShortener(jsonResults[i].object.value)
+	        	objectNameAux = pathShortener(jsonResults[i].subject.value)
+	        	yaEncontrado = false
+			        
+			    //console.log(jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]])
+	        }
 
-	            var jsonObject = { }
-	            var jsonObjectProperty = { }
-	            jsonObjectProperty[propertyName] = propertyValue
-	            jsonObject[objectName] = jsonObjectProperty
-				//console.log(value)
-				jsonResultsParsed.push(jsonObject)
-				jsonResultsParsedAux.push(objectName)
-				var objAux = { }
-				objAux[objectName] = jsonResultsParsed.length - 1
-        		objectNameAuxArray.push(objAux)
-        	}
+	        var limitNumber = jsonResultsParsed.length
+	        var offsetNumber = 0
+	        try{
+			  	if(limit){
+			  		limitNumber = parseInt(limit)
+			  	}
+			  	if(offset) {
+			  		offsetNumber = parseInt(offset)
+			  	}
+			} catch (e){
+				console.log(e)
+			}
 
-        	objectNameAux = pathShortener(jsonResults[i].subject.value)
-        	yaEncontrado = false
-		        
-		    //console.log(jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]])
-        }
-
-		jsonFinalResults.results = jsonResultsParsed
-		var returnResults = JSON.stringify(jsonFinalResults)
+	        jsonResultsParsed = jsonResultsParsed.slice(offsetNumber, offsetNumber + limitNumber)
+			jsonFinalResults.results = jsonResultsParsed
+			var returnResults = JSON.stringify(jsonFinalResults)
 
 
-	  	response.json({results: returnResults, query: sparql})
+		  	response.json({results: returnResults, query: sparql})
+		}
+	} catch(e){
+		console.log(e)
+		response.json({error: "Error querying the endpoint", query: sparql})
 	}
 }

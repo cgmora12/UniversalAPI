@@ -7,6 +7,20 @@ window.onload = function() {
     $('#Bio2RDF').click(function(){ Bio2RDF(); return false; });
 }
 
+function editEndpoint(){
+	$('#endpoint').prop('disabled', false);
+	$("#editEndpoint").collapse("hide");
+	$('#collapseSparqlQuery').collapse("hide");
+	$('#collapsePath').collapse("hide");
+	$('#collapseCompleteQuery').collapse("hide");
+	$('#collapseFormat').collapse("hide");
+	$('#collapseSend').collapse("hide");
+	$('#collapseSendSparql').collapse("hide");
+	$('#collapseProperties').collapse("hide");
+	$('#collapseResults').collapse("hide");
+	jsonResults = ""
+}
+
 var jsonResults
 
 function basicQuery(){
@@ -50,6 +64,7 @@ function basicQuery(){
 function basicQueryFill(){
 	//$('#basicQueryBtn').prop('disabled', false);
 	$('#documentation').prop('disabled', false);
+	$('#basicQueryBtn').prop('disabled', false);
 	$('#sparqlQueryBtn').prop('disabled', false);
 
 	$('#basicQueryBtn').val("Basic API query")
@@ -59,6 +74,8 @@ function basicQueryFill(){
 	$('#collapseFormat').collapse("show");
 	$('#collapseSend').collapse("show");
 	$('#collapseSendSparql').collapse("hide");
+	$("#editEndpoint").collapse("show");
+	$('#collapseResults').collapse("hide");
 
 	// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonResults.paths
 	var options = Object.keys(jsonResults.paths);
@@ -69,9 +86,10 @@ function basicQueryFill(){
 	    $('#path').append($('<option></option>').val(p).html(p.substring(1)));
 	});
 	$("#path").on('change', function() {
-		$('#collapseProperty').collapse("show");
-		$('#property').empty();
-		$('#property').append($('<option></option>'));
+		$('.collapseProperty').collapse("show");
+		$('#collapseProperties').collapse("show");
+		$('.property').empty();
+		$('.property').append($('<option></option>'));
 		var selectedPath = $("#path").val()
 		var jsonProperties = jsonResults.paths[selectedPath].get.parameters
 		console.log(jsonProperties)
@@ -84,10 +102,10 @@ function basicQueryFill(){
 		var optionsOrdered = options.sort()
 		// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonProperties
 		$.each(optionsOrdered, function(i, p) {
-		    $('#property').append($('<option></option>').val(p).html(p));
+		    $('.property').append($('<option></option>').val(p).html(p));
 		});
-		$("#property").on('change', function() {
-			$('#collapsePropertyValue').collapse("show");
+		$(".property").on('change', function() {
+			$('.collapsePropertyValue').collapse("show");
 		});
 	});
 }
@@ -101,8 +119,8 @@ function sparqlQuery(){
 	$('#basicQueryBtn').prop('disabled', false);
 	$('#collapseSend').collapse("hide");
 	$('#collapseSendSparql').collapse("show");
-	$('#collapseProperty').collapse("hide");
-	$('#collapsePropertyValue').collapse("hide");
+	$('#collapseProperties').collapse("hide");
+	$('#collapseResults').collapse("hide");
 }
 
 function documentation(){
@@ -131,7 +149,7 @@ function documentation(){
 						if(data.results){
 							jsonResults = JSON.parse(data.results);
 							$('#query').val(data.sparql);
-							$('#apiquery').val(url);
+							$('#apiquery').val("https://wake.dlsi.ua.es" + url);
 							documentationReady()
 						}
 						if(data.error){
@@ -173,6 +191,34 @@ function documentationReady(){
     }
 }
 
+function addProperty(){
+
+	var collapseNewProperties = document.getElementById("collapseNewProperties");
+	var property = document.getElementsByClassName("property")[0];
+	var propertyClone = property.cloneNode(true);
+	var newProperty = document.createElement("div");
+	newProperty.innerHTML = "<div class=\"collapseProperty row form-group panel-collapse collapse in show col-sm-12 col-lg-12\"> \
+                                    <div class=\"col-sm-3 col-sm-offset-1 form-group\"> \
+                                        <label>Property</label> \
+                                    </div> \
+                                    <div class=\"col-sm-5 form-group\"> \
+                                        <select class=\"form-control property\"> \
+                                        </select> \
+                                    </div> \
+                                </div> \
+                                <div class=\"collapsePropertyValue row form-group panel-collapse collapse in show col-sm-12 col-lg-12\"> \
+                                    <div class=\"col-sm-3 col-sm-offset-1 form-group\"> \
+                                        <label>Property Value</label> \
+                                    </div> \
+                                    <div class=\"col-sm-5 form-group\"> \
+                                        <input class=\"form-control propertyValue\"> \
+                                    </div> \
+                                </div>";
+	collapseNewProperties.appendChild(newProperty);
+	$(".property")[$(".property").length -1].replaceWith(propertyClone);
+	//document.replaceChild(propertyClone, document.getElementsByClassName("property")[document.getElementsByClassName("property").length - 1]);
+}
+
 function send(){
 	$('#sendQuery').prop('disabled', true);
 	$('#endpoint').prop('disabled', true);
@@ -180,19 +226,36 @@ function send(){
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
 
-	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + '&path=' + $('#path').val()
-	//TODO: check all properties
-	var property = $('#property').val()
-	var propertyValue = $('#propertyValue').val()
-	var properties
-	if(property && propertyValue){
-		properties = "?" + property + "=" + propertyValue + "&"
-		url += properties
+	var limit = ""
+	var offset = ""
+	if($("#limit").val()){
+		limit = "&limit=" + $("#limit").val()
+	}
+	if($("#offset").val()){
+		offset = "&offset=" + $("#offset").val()
+	}
+
+	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + limit + offset + '&path=' + $('#path').val()
+	// check all properties
+	var properties = $('.property')
+	var propertiesUrl = { }
+	var i 
+	for (i = 0; i < properties.length; i++){
+
+		var property = escape(properties[i].value)
+		var propertyValue = escape($('.propertyValue')[i].value)
+		if(property && propertyValue){
+			propertiesUrl[property] = propertyValue
+		}
+	}
+
+	if(propertiesUrl && !jQuery.isEmptyObject(propertiesUrl)){
+			url +=  "&properties=" + JSON.stringify(propertiesUrl)
 	}
 
 	//mostrar url en la interfaz
 	console.log(url)
-	$("#apiquery").val(url)
+	$("#apiquery").val("https://wake.dlsi.ua.es" + url)
 
 	$.ajax({
 		url: url,
@@ -201,7 +264,8 @@ function send(){
 		responseType:'application/json',
 		success: function (data) {
 			$('#sendQuery').prop('disabled', false);
-			$('#endpoint').prop('disabled', false);
+			//$('#endpoint').prop('disabled', false);
+			$('#editEndpoint').collapse("show");
 			$('#documentation').prop('disabled', false);
 			$('#basicQueryBtn').prop('disabled', false);
 			$('#sparqlQueryBtn').prop('disabled', false);
@@ -242,12 +306,21 @@ function sendSparql(){
 	$('#documentation').prop('disabled', true);
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
+	
+	var limit = ""
+	var offset = ""
+	if($("#limit").val()){
+		limit = "&limit=" + $("#limit").val()
+	}
+	if($("#offset").val()){
+		offset = "&offset=" + $("#offset").val()
+	}
 
-	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + '&query=' + $('#sparqlQuery').val()
+	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + limit + offset + '&query=' + escape($('#sparqlQuery').val())
 
 	//mostrar url en la interfaz
 	console.log(url)
-	$("#apiquery").val(url)
+	$("#apiquery").val("https://wake.dlsi.ua.es" + url)
 
 	$.ajax({
 		url: url,
@@ -256,7 +329,8 @@ function sendSparql(){
 		responseType:'application/json',
 		success: function (data) {
 			$('#sendSparqlQuery').prop('disabled', false);
-			$('#endpoint').prop('disabled', false);
+			//$('#endpoint').prop('disabled', false);
+			$('#editEndpoint').collapse("show");
 			$('#documentation').prop('disabled', false);
 			$('#basicQueryBtn').prop('disabled', false);
 			$('#sparqlQueryBtn').prop('disabled', false);
@@ -292,17 +366,25 @@ function sendSparql(){
 }
 
 function GeoLinkedData(){
-	$('#endpoint').val('http://geo.linkeddata.es/sparql')
+	if(!$('#endpoint').prop('disabled')){
+		$('#endpoint').val('http://geo.linkeddata.es/sparql')
+	}
 }
 
 function RISM(){
-	$('#endpoint').val('http://data.rism.info/sparql')
+	if(!$('#endpoint').prop('disabled')){
+		$('#endpoint').val('http://data.rism.info/sparql')
+	}
 }
 
 function AEMET(){
-	$('#endpoint').val('http://aemet.linkeddata.es/sparql')
+	if(!$('#endpoint').prop('disabled')){
+		$('#endpoint').val('http://aemet.linkeddata.es/sparql')
+	}
 }
 
 function Bio2RDF(){
-	$('#endpoint').val('http://bio2rdf.org/sparql')
+	if(!$('#endpoint').prop('disabled')){
+		$('#endpoint').val('http://bio2rdf.org/sparql')
+	}
 }
