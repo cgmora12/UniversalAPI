@@ -52,9 +52,20 @@ function basicQuery(){
 						if(data.results){						
 							jsonResults = JSON.parse(data.results);
 							basicQueryFill()
+						} else {
+							basicQueryNotFill(data.error)
 						}
 					}
+					else {
+						basicQueryNotFill()
+					}
 				}
+				else {
+					basicQueryNotFill()
+				}
+			},
+			error: function(error){
+				basicQueryNotFill()
 			}
 		});
 	}
@@ -67,7 +78,7 @@ function basicQueryFill(){
 	$('#basicQueryBtn').prop('disabled', false);
 	$('#sparqlQueryBtn').prop('disabled', false);
 
-	$('#basicQueryBtn').val("Basic API query")
+	$('#basicQueryBtn').val("API query")
 	$('#collapseSparqlQuery').collapse("hide");
 	$('#collapsePath').collapse("show");
 	$('#collapseCompleteQuery').collapse("show");
@@ -92,7 +103,7 @@ function basicQueryFill(){
 		$('.property').append($('<option></option>'));
 		var selectedPath = $("#path").val()
 		var jsonProperties = jsonResults.paths[selectedPath].get.parameters
-		console.log(jsonProperties)
+		//console.log(jsonProperties)
 		var options = []
 		var i
 		for(i = 0; i < jsonProperties.length; i++){
@@ -108,6 +119,22 @@ function basicQueryFill(){
 			$('.collapsePropertyValue').collapse("show");
 		});
 	});
+}
+
+function basicQueryNotFill(errorObject){
+	//$('#basicQueryBtn').prop('disabled', false);
+	$('#documentation').prop('disabled', false);
+	$('#basicQueryBtn').prop('disabled', false);
+	$('#sparqlQueryBtn').prop('disabled', false);
+	$('#collapseResults').collapse("show");
+	$('#basicQueryBtn').val("API query")
+	$('#endpoint').prop('disabled', false);
+
+	var error = "Error querying the endpoint"
+	if(errorObject){
+		error = errorObject
+	}
+	$('#textareaResult').val(error);
 }
 
 function sparqlQuery(){
@@ -152,14 +179,20 @@ function documentation(){
 							$('#apiquery').val("https://wake.dlsi.ua.es" + url);
 							documentationReady()
 						}
-						if(data.error){
-							$('#textareaResult').val(data.error);
+						else {
+							documentationNotReady(data.error)
 						}
 					}
 					else {
-						$('#textareaResult').val('');
+						documentationNotReady()
 					}
+				} 
+				else {
+					documentationNotReady()
 				}
+			},
+			error: function(error){
+				documentationNotReady()
 			}
 		});
 	}
@@ -189,6 +222,20 @@ function documentationReady(){
         elem.click();        
         document.body.removeChild(elem);
     }
+}
+
+function documentationNotReady(errorObject){
+	$('#documentation').prop('disabled', false);
+	$('#basicQueryBtn').prop('disabled', false);
+	$('#sparqlQueryBtn').prop('disabled', false);
+	$('#collapseResults').collapse("show");
+	$('#endpoint').prop('disabled', false);
+
+	var error = "Error querying the endpoint"
+	if(errorObject){
+		error = errorObject
+	}
+	$('#textareaResult').val(error);
 }
 
 function addProperty(){
@@ -254,7 +301,7 @@ function send(){
 	}
 
 	//mostrar url en la interfaz
-	console.log(url)
+	//console.log(url)
 	$("#apiquery").val("https://wake.dlsi.ua.es" + url)
 
 	$.ajax({
@@ -282,12 +329,12 @@ function send(){
 							$('#textareaResult').val(JSON.stringify(JSON.parse(data.results), null, 2));
 						}
 					}
-					if(data.error){
+					else {
 						$('#textareaResult').val(data.error);
 					}
 				}
 				else {
-					$('#textareaResult').val('');
+					$('#textareaResult').val('Error querying the endpoint');
 				}
 
 				if(data.query){
@@ -295,7 +342,13 @@ function send(){
 				} else {
 					$('#query').val('');
 				}
+			} else {
+				$('#textareaResult').val("Error querying the endpoint");
 			}
+		},
+		error: function(error){
+			console.log(error)
+			$('#textareaResult').val("Error querying the endpoint");
 		}
 	});
 }
@@ -319,7 +372,7 @@ function sendSparql(){
 	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + limit + offset + '&query=' + escape($('#sparqlQuery').val())
 
 	//mostrar url en la interfaz
-	console.log(url)
+	//console.log(url)
 	$("#apiquery").val("https://wake.dlsi.ua.es" + url)
 
 	$.ajax({
@@ -347,12 +400,12 @@ function sendSparql(){
 							$('#textareaResult').val(JSON.stringify(JSON.parse(data.results), null, 2));
 						}
 					}
-					if(data.error){
+					else {
 						$('#textareaResult').val(data.error);
 					}
 				}
 				else {
-					$('#textareaResult').val('');
+					$('#textareaResult').val('Error querying the endpoint');
 				}
 
 				if(data.query){
@@ -361,6 +414,10 @@ function sendSparql(){
 					$('#query').val('');
 				}
 			}
+		},
+		error: function(error){
+			console.log(error)
+			$('#textareaResult').val('Error querying the endpoint');
 		}
 	});
 }
