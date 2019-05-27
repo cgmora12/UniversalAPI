@@ -7,6 +7,7 @@ var endpoint
 var documentation
 var finishedAsync
 var response
+var responsed
 var path
 var properties
 var format
@@ -21,6 +22,7 @@ module.exports = function(app, db) {
 	});
 	// Query the Universal API
 	app.get('/UniversalAPIQuery', (req, res) => {
+		responsed = false
 		try{
 			console.log("params: " + JSON.stringify(req.query))
 
@@ -94,11 +96,11 @@ module.exports = function(app, db) {
 				
 			}
 			else {
-				response.json({error: 'API to LOD -> Missing parameter "endpoint"'})
+				finalResponse({error: 'API to LOD -> Missing parameter "endpoint"'})
 			}
 		} catch (e){
 			console.log(e)
-			response.json({error: "API to LOD -> Error querying the endpoint"})
+			finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		}
 	});
 };
@@ -154,18 +156,18 @@ function getEndpointClasses(){
 		        getClassesProperties(paths)
 	    	} catch (e){
 				console.log(e)
-				response.json({error: "API to LOD -> Error querying the endpoint"})
+				finalResponse({error: "API to LOD -> Error querying the endpoint"})
 			}
 		  });
 		});
 
 		req.on('error', function(e) {
 		  console.log('ERROR: ' + e.message);
-		  response.json({error: "API to LOD -> Error querying the endpoint"})
+		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
 	} catch (e){
 		console.log(e)
-		response.json({error: "API to LOD -> Error querying the endpoint"})
+		finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	}
 };
 
@@ -210,31 +212,38 @@ function getClassProperties(pathValue, addPathToDoc){
 		var results = data
 		try {
 		    results = JSON.parse(data)
+			var jsonProperties = results.results.bindings
 
-		  	var jsonProperties = results.results.bindings
-		  	var i;
-		  	for(i=0;i<jsonProperties.length;i++)
-	        {
-	            var jsonObject1 = jsonProperties[i];
-	            var value = jsonObject1.property["value"];
-				//console.log(value)
-				properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
-	        }
+			try {
+			  	var i;
+			  	for(i=0;i<jsonProperties.length;i++)
+		        {
+		            var jsonObject1 = jsonProperties[i];
+		            var value = jsonObject1.property["value"];
+					//console.log(value)
+					properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
+		        }
+
+			} catch (e) {
+			    if (e instanceof SyntaxError) {
+			        console.log(e)
+			    }
+			}
+
+	    	addPathToDoc(pathValue, properties)
 
 		} catch (e) {
 		    if (e instanceof SyntaxError) {
 		        console.log(e)
 		    }
 		}
-
-	    addPathToDoc(pathValue, properties)
 	  });
 	});
 
 
 	req.on('error', function(e) {
 	  console.log('ERROR: ' + e.message);
-	  response.json({error: "API to LOD -> Error querying the endpoint"})
+	  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	});
 }
 
@@ -265,7 +274,7 @@ function createDocumentation(){
 	console.log('createDocumentation')
 
 	try{
-		response.json({results: JSON.stringify(documentation)})
+		finalResponse.json({results: JSON.stringify(documentation)})
 	} catch (e) {
 		console.log(e)
 	}
@@ -347,7 +356,7 @@ function getEndpointClassesFromResource(){
 			}
         }
 
-	  	response.json({error: 'API to LOD -> Error generating the SPARQL query: check that the endpoint and the path are correct...'})
+	  	finalResponse({error: 'API to LOD -> Error generating the SPARQL query: check that the endpoint and the path are correct...'})
 
 	  });
 	});
@@ -355,7 +364,7 @@ function getEndpointClassesFromResource(){
 
 	req.on('error', function(e) {
 	  console.log('ERROR: ' + e.message);
-	  response.json({error: "API to LOD -> Error querying the endpoint"})
+	  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	});
 };
 
@@ -431,7 +440,7 @@ function getClassPropertiesFromParameters(pathValue, properties, callback){
 
 	req.on('error', function(e) {
 	  console.log('ERROR: ' + e.message);
-	  response.json({error: "API to LOD -> Error querying the endpoint"})
+	  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	});
 }
 
@@ -505,7 +514,7 @@ function generateSparql(pathToResource, properties){
 
 	}).on("error", (err) => {
 	  console.log("Error: " + err.message);
-	  response.json({error: 'API to LOD -> Error querying the endpoint'})
+	  finalResponse({error: 'API to LOD -> Error querying the endpoint'})
 	});
 }
 
@@ -592,7 +601,7 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 
 	}).on("error", (err) => {
 	  console.log("Error: " + err.message);
-	  response.json({error: 'API to LOD -> Error querying the endpoint'})
+	  finalResponse({error: 'API to LOD -> Error querying the endpoint'})
 	});
 };
 
@@ -615,7 +624,7 @@ function returnResults(results, sparql){
 			}
 		  	
 	        results.results.bindings = results.results.bindings.slice(offsetNumber, offsetNumber + limitNumber)
-		  	response.json({results: results, query: sparql})
+		  	finalResponse({results: results, query: sparql})
 		} else {
 			var jsonResults = results.results.bindings
 		  	var jsonResultsParsed = []
@@ -737,10 +746,19 @@ function returnResults(results, sparql){
 			var returnResults = JSON.stringify(jsonFinalResults)
 
 
-		  	response.json({results: returnResults, query: sparql})
+		  	finalResponse({results: returnResults, query: sparql})
 		}
 	} catch(e){
 		console.log(e)
-		response.json({error: "API to LOD -> Error querying the endpoint", query: sparql})
+		finalResponse({error: "API to LOD -> Error querying the endpoint", query: sparql})
+	}
+}
+
+function finalResponse(responseObject){
+	if(responsed){
+		console.log("The response was just sent to user");
+	} else{
+		responsed = true
+		response.json(responseObject)
 	}
 }
