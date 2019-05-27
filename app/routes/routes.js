@@ -108,6 +108,16 @@ module.exports = function(app, db) {
 
 // Documentation function
 function getEndpointClasses(){
+	//Query similar
+	/*
+		SELECT DISTINCT ?directSub WHERE {
+	    ?directSub rdfs:subClassOf ?super .
+	    OPTIONAL {
+	        ?directSub rdfs:subClassOf ?otherSub .
+	        FILTER (?otherSub = ?directSub)
+	    }
+	    FILTER (!BOUND(?otherSub ))
+	}*/
 	var httpGet = endpoint + '?query=' + 'SELECT DISTINCT ?class WHERE { ?s a ?class . }' + '&format=application%2Fsparql-results%2Bjson'
 	//console.log(httpGet)
 
