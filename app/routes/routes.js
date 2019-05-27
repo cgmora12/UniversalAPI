@@ -756,9 +756,10 @@ function returnResults(results, sparql){
 
 function finalResponse(responseObject){
 	if(responsed){
-		console.log("The response was just sent to user");
+		console.log("The response has already been sent to the user");
 	} else{
 		responsed = true
+		console.log("Response sent to user");
 		response.json(responseObject)
 	}
 }
