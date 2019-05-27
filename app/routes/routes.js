@@ -284,7 +284,7 @@ function createDocumentation(){
 	console.log('createDocumentation')
 
 	try{
-		finalResponse.json({results: JSON.stringify(documentation)})
+		finalResponse({results: JSON.stringify(documentation)})
 	} catch (e) {
 		console.log(e)
 	}
