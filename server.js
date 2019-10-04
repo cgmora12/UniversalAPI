@@ -25,6 +25,7 @@ app.use('/UniversalAPI/web/css', express.static(__dirname + '/web/css'));
 //app.use('/css', express.directory(__dirname + '/web/css'));
 app.use('/UniversalAPI/web/js', express.static(__dirname + '/web/js'));
 //app.use('/js', express.directory(__dirname + '/web/js'));
+app.use('/UniversalAPI/docs',  express.static(__dirname + '/docs/'));
 
 app.listen(port, () => {
   console.log('We are live on ' + port);

@@ -23,7 +23,7 @@
 
         <div class="row" style="margin-top: 10px;">
             <div class="col-lg-12">
-                <h1> <img border="0" alt="GitHub" src="/UniversalAPI/web/images/rdf.png" width="80" height="80" style="margin: 5px;"> Universal API to Linked Open Data<small><br>Automatically generating SPARQL queries to access LOD endpoints</small></h1>
+                <h1> <img border="0" alt="GitHub" src="/UniversalAPI/web/images/rdf.png" width="80" height="80" style="margin: 5px;"> Universal API to Linked Open Data<small><br>Auto-generating SPARQL queries to access LOD endpoints</small></h1>
             </div>
         </div>
         <br>
@@ -36,8 +36,7 @@
                         <h3><a data-toggle="collapse" data-parent="#accordion" href="#collapse1">Info</a></h3>
                     </div>
                     <div id="collapse1" class="col-sm-12 col-lg-12 panel-collapse collapse in show" style="overflow: hidden;">
-                        <p>The Universal API can be queried by using <a href="https://wake.dlsi.ua.es/UniversalAPI" target="_blank">this website</a> or programmatically pointing at <a href="https://wake.dlsi.ua.es/UniversalAPIQuery" target="_blank">UniversalAPIQuery</a> and using the paremeters 'endpoint' and 'query'. </p>
-                        <p>An example of using the API directly will be the following: <a target="_blank" href="https://wake.dlsi.ua.es/UniversalAPIQuery?endpoint=http://bio2rdf.org/sparql&query=SELECT+%3Fsubject+%3Fpredicate+%3Fobject%0D%0AWHERE+%7B%3Fsubject+%3Fpredicate+%3Fobject%7D+%0D%0ALIMIT+100">https://wake.dlsi.ua.es/UniversalAPIQuery?endpoint=http://bio2rdf.org/sparql&query=SELECT+%3Fsubject+%3Fpredicate+%3Fobject%0D%0AWHERE+%7B%3Fsubject+%3Fpredicate+%3Fobject%7D+%0D%0ALIMIT+100</a></p>
+                        <p>The Universal API can be queried manually by using this website or programmatically pointing at <a href="https://wake.dlsi.ua.es/UniversalAPIQuery" target="_blank">UniversalAPIQuery</a>. Here is a detailed documentation to use the UAPI directly: <a href="https://wake.dlsi.ua.es/UniversalAPI" target="_blank">OpenAPI documentation</a>.</p>
                         <p>More details at <a href="https://github.com/cgmora12/UniversalAPI" target="_blank">GitHub page</a>.</p>
                     </div>
                 </div>
@@ -62,17 +61,18 @@
                             <div class="col-sm-4 form-group">
                                 <input id="basicQueryBtn" type="button" class="btn btn-primary" onclick="basicQuery();" value="API query"/>
                             </div>
-                            <div class="col-sm-4 form-group">
-                                <input id="sparqlQueryBtn" type="button" class="btn btn-secondary" onclick="sparqlQuery();" value="SPARQL query"/>
+
+                            <div id="collapseDoc" class="col-sm-6 form-group panel-collapse collapse in show">
+                                <input id="documentation" type="button" class="btn" onclick="documentation();" value="Get endpoint documentation"/>
                             </div>
 
-                            <div id="collapseDoc" class="col-sm-4 form-group panel-collapse collapse in show">
-                                <input id="documentation" type="button" class="btn" onclick="documentation();" value="Get endpoint documentation"/>
+                            <div class="col-sm-2 form-group">
+                                <input id="sparqlQueryBtn" type="button" class="btn btn-secondary" onclick="sparqlQuery();" value="SPARQL query"/>
                             </div>
                         </div>
                         <div id="collapsePath" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
                             <div class="col-sm-3 col-sm-offset-1 form-group">
-                                <label>Path</label>
+                                <label>Resource</label>
                             </div>
                             <div class="col-sm-8 form-group">
                                 <!--<input class="form-control" id="path">-->

@@ -28,7 +28,7 @@ function basicQuery(){
 
 	$('#endpoint').prop('disabled', true);
 
-	$('#basicQueryBtn').val("Loading endpoint ...")
+	$('#basicQueryBtn').val("Loading endpoint...")
 	$('#basicQueryBtn').prop('disabled', true);
 
 	$('#documentation').prop('disabled', true);
@@ -153,6 +153,8 @@ function sparqlQuery(){
 function documentation(){
 	$('#endpoint').prop('disabled', true);
 	$('#documentation').prop('disabled', true);
+
+	$('#documentation').val("Loading documentation...")
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
 
@@ -201,6 +203,7 @@ function documentation(){
 
 function documentationReady(){
 	$('#documentation').prop('disabled', false);
+	$('#documentation').val("Get endpoint documentation");
 	$('#basicQueryBtn').prop('disabled', false);
 	$('#sparqlQueryBtn').prop('disabled', false);
 	$('#collapseResults').collapse("show");
@@ -226,6 +229,7 @@ function documentationReady(){
 
 function documentationNotReady(errorObject){
 	$('#documentation').prop('disabled', false);
+	$('#documentation').val("Get endpoint documentation");
 	$('#basicQueryBtn').prop('disabled', false);
 	$('#sparqlQueryBtn').prop('disabled', false);
 	$('#collapseResults').collapse("show");
