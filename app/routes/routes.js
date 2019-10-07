@@ -284,7 +284,7 @@ function createDocumentation(){
 	console.log('createDocumentation')
 
 	try{
-		finalResponse({results: JSON.stringify(documentation)})
+		finalResponse({results: documentation})
 	} catch (e) {
 		console.log(e)
 	}
@@ -753,10 +753,10 @@ function returnResults(results, sparql){
 
 	        jsonResultsParsed = jsonResultsParsed.slice(offsetNumber, offsetNumber + limitNumber)
 			jsonFinalResults.results = jsonResultsParsed
-			var returnResults = JSON.stringify(jsonFinalResults)
+			//var returnResults = JSON.stringify(jsonFinalResults)
 
-
-		  	finalResponse({results: returnResults, query: sparql})
+			finalResponse({results: jsonFinalResults, query: sparql})
+		  	//finalResponse({results: returnResults, query: sparql})
 		}
 	} catch(e){
 		console.log(e)

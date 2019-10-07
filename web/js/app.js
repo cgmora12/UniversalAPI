@@ -18,12 +18,20 @@ function editEndpoint(){
 	$('#collapseSendSparql').collapse("hide");
 	$('#collapseProperties').collapse("hide");
 	$('#collapseResults').collapse("hide");
+	document.getElementById("loader").style.display = "none";
 	jsonResults = ""
 }
 
 var jsonResults
 
 function basicQuery(){
+
+	$('#collapseSendSparql').collapse("hide");
+	$('#collapseSparqlQuery').collapse("hide");
+	$('#collapseCompleteQuery').collapse("hide");
+	$('#collapseFormat').collapse("hide");
+	$('#collapseResults').collapse("hide");
+
 	//$('#collapseSubmits').collapse("hide");
 
 	$('#endpoint').prop('disabled', true);
@@ -33,6 +41,8 @@ function basicQuery(){
 
 	$('#documentation').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
+
+	document.getElementById("loader").style.display = "block";
 
 	var url = '/UniversalAPIQuery'
 	url += '?endpoint=' + $('#endpoint').val() + "&documentation=true"
@@ -50,7 +60,7 @@ function basicQuery(){
 					//console.log(data)
 					if(data.results || data.error){
 						if(data.results){						
-							jsonResults = JSON.parse(data.results);
+							jsonResults = data.results;
 							basicQueryFill()
 						} else {
 							basicQueryNotFill(data.error)
@@ -77,6 +87,8 @@ function basicQueryFill(){
 	$('#documentation').prop('disabled', false);
 	$('#basicQueryBtn').prop('disabled', false);
 	$('#sparqlQueryBtn').prop('disabled', false);
+
+	document.getElementById("loader").style.display = "none";
 
 	$('#basicQueryBtn').val("API query")
 	$('#collapseSparqlQuery').collapse("hide");
@@ -130,6 +142,8 @@ function basicQueryNotFill(errorObject){
 	$('#basicQueryBtn').val("API query")
 	$('#endpoint').prop('disabled', false);
 
+	document.getElementById("loader").style.display = "none";
+
 	var error = "Error querying the endpoint"
 	if(errorObject){
 		error = errorObject
@@ -151,12 +165,21 @@ function sparqlQuery(){
 }
 
 function documentation(){
+
+	$('#collapseSendSparql').collapse("hide");
+	$('#collapseSparqlQuery').collapse("hide");
+	$('#collapseCompleteQuery').collapse("hide");
+	$('#collapseFormat').collapse("hide");
+	$('#collapseResults').collapse("hide");
+
 	$('#endpoint').prop('disabled', true);
 	$('#documentation').prop('disabled', true);
 
 	$('#documentation').val("Loading documentation...")
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
+
+	document.getElementById("loader").style.display = "block";
 
 	var url = '/UniversalAPIQuery'
 	url += '?endpoint=' + $('#endpoint').val() + "&documentation=true"
@@ -176,7 +199,7 @@ function documentation(){
 					//console.log(data)
 					if(data.results || data.error){
 						if(data.results){
-							jsonResults = JSON.parse(data.results);
+							jsonResults = data.results;
 							$('#query').val(data.sparql);
 							$('#apiquery').val("https://wake.dlsi.ua.es" + url);
 							documentationReady()
@@ -208,6 +231,8 @@ function documentationReady(){
 	$('#sparqlQueryBtn').prop('disabled', false);
 	$('#collapseResults').collapse("show");
 
+	document.getElementById("loader").style.display = "none";
+
 	var jsonResultsFormatted = JSON.stringify(jsonResults, null, 2);
 	$('#textareaResult').val(jsonResultsFormatted);
 	var blob = new Blob([jsonResultsFormatted], {
@@ -234,6 +259,8 @@ function documentationNotReady(errorObject){
 	$('#sparqlQueryBtn').prop('disabled', false);
 	$('#collapseResults').collapse("show");
 	$('#endpoint').prop('disabled', false);
+
+	document.getElementById("loader").style.display = "none";
 
 	var error = "Error querying the endpoint"
 	if(errorObject){
@@ -276,6 +303,9 @@ function send(){
 	$('#documentation').prop('disabled', true);
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
+	$('#collapseResults').collapse("hide");
+
+	document.getElementById("loader").style.display = "block";
 
 	var limit = ""
 	var offset = ""
@@ -321,6 +351,8 @@ function send(){
 			$('#basicQueryBtn').prop('disabled', false);
 			$('#sparqlQueryBtn').prop('disabled', false);
 
+			document.getElementById("loader").style.display = "none";
+
 			if(data){
 				console.log(data)
 				$('#collapseResults').collapse("show");
@@ -330,7 +362,7 @@ function send(){
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
 						}
 						else {
-							$('#textareaResult').val(JSON.stringify(JSON.parse(data.results), null, 2));
+							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
 						}
 					}
 					else {
@@ -363,6 +395,9 @@ function sendSparql(){
 	$('#documentation').prop('disabled', true);
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
+	$('#collapseResults').collapse("hide");
+
+	document.getElementById("loader").style.display = "block";
 	
 	var limit = ""
 	var offset = ""
@@ -392,6 +427,8 @@ function sendSparql(){
 			$('#basicQueryBtn').prop('disabled', false);
 			$('#sparqlQueryBtn').prop('disabled', false);
 
+			document.getElementById("loader").style.display = "none";
+
 			if(data){
 				console.log(data)
 				$('#collapseResults').collapse("show");
@@ -401,7 +438,7 @@ function sendSparql(){
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
 						}
 						else {
-							$('#textareaResult').val(JSON.stringify(JSON.parse(data.results), null, 2));
+							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
 						}
 					}
 					else {
