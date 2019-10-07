@@ -434,7 +434,7 @@ function getClassPropertiesFromParameters(pathValue, properties, callback){
 				var j
 				for(j = 0; j < Object.keys(propertiesJson).length; j++){
 					if(valueShortened === unescape(Object.keys(propertiesJson)[j])){
-						newProperties.push({name: value, value: unescape(Object.values(propertiesJson)[j])})
+						newProperties.push({name: value, value: unescape(Object.keys(propertiesJson).map((k) => propertiesJson[k])[j])})
 					}
 				}
 			} catch(e){
