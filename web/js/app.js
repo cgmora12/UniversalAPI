@@ -101,12 +101,12 @@ function basicQueryFill(){
 	$('#collapseResults').collapse("hide");
 
 	// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonResults.paths
-	var options = Object.keys(jsonResults.paths);
+	var options = Object.keys(jsonResults.paths["/"].get.parameters[1].examples);
 	var optionsOrdered = options.sort()
 	$('#path').empty();
 	$('#path').append($('<option></option>'));
 	$.each(optionsOrdered, function(i, p) {
-	    $('#path').append($('<option></option>').val(p).html(p.substring(1)));
+	    $('#path').append($('<option></option>').val(p).html(p));
 	});
 	$("#path").on('change', function() {
 		$('.collapseProperty').collapse("show");
@@ -114,12 +114,12 @@ function basicQueryFill(){
 		$('.property').empty();
 		$('.property').append($('<option></option>'));
 		var selectedPath = $("#path").val()
-		var jsonProperties = jsonResults.paths[selectedPath].get.parameters
+		var jsonProperties = Object.keys(jsonResults.components.schemas[selectedPath].properties)
 		//console.log(jsonProperties)
 		var options = []
 		var i
 		for(i = 0; i < jsonProperties.length; i++){
-			var value = jsonProperties[i].name
+			var value = jsonProperties[i]
 			options.push(value)
 		}
 		var optionsOrdered = options.sort()

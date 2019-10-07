@@ -2,6 +2,7 @@
 
 const http 		 = require('http');
 var _ = require('underscore');
+let openapiTemplate = require('./openapiTemplate.json');
 
 var endpoint
 var documentation
@@ -75,19 +76,20 @@ module.exports = function(app, db) {
 							getEndpointClasses()
 				} else {
 					if(typeof path !== 'undefined' && path) {
-						if(path.charAt(0) == '/'){
+						//if(path.charAt(0) == '/'){
 							console.log('path: ' + path)
 							// autogenerate sparql
 							// generate sparql query with resource and properties
 							
 							//generateSparql(path);
 							getEndpointClassesFromResource()
-						} else {
+						/*} else {
+							// TODO: sparql directly
 							// query sparl
 							sparql = path
 							console.log('sparql: ' + sparql)
 							sparqlQuery(sparql)
-						}
+						}*/
 					} else {
 						sparqlQuery()
 					}
@@ -118,7 +120,7 @@ function getEndpointClasses(){
 	    }
 	    FILTER (!BOUND(?otherSub ))
 	}*/
-	var httpGet = endpoint + '?query=' + 'SELECT DISTINCT ?class WHERE { ?s a ?class . }' + '&format=application%2Fsparql-results%2Bjson'
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }') + '&format=application%2Fsparql-results%2Bjson' + '&timeout=10000'
 	//console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -196,7 +198,7 @@ function getClassesProperties(paths) {
 // Documentation function
 function getClassProperties(pathValue, addPathToDoc){
 	sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
-	var httpGet = endpoint + '?query=' + escape(sparql) + '&format=application%2Fsparql-results%2Bjson'
+	var httpGet = endpoint + '?query=' + escape(sparql) + '&format=application%2Fsparql-results%2Bjson' + '&timeout=200'
 	//console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -244,8 +246,10 @@ function getClassProperties(pathValue, addPathToDoc){
 
 		} catch (e) {
 		    if (e instanceof SyntaxError) {
-		        console.log(e)
+		        //console.log(e)
 		    }
+		    console.log("Error at: " + data)
+		    finishedAsync()
 		}
 	  });
 	});
@@ -261,11 +265,35 @@ function getClassProperties(pathValue, addPathToDoc){
 function addPathToDoc(pathValue, properties){
 
 	//var path = { path: pathValue, parameters: properties}
-	//console.log(path)
+	//console.log(pathValue)
 	//documentation.paths.push(path)
 	var pathShortened = pathShortener(pathValue)
-	documentation.paths['/' + pathShortened] = { get: { summary: "GET " + pathShortened, description: "" + pathValue, operationId: "get" + pathShortened, 
-		responses : { "200" : { description : "successful operation" } }, parameters: properties }};
+
+	try{
+		documentation.paths['/'].get.parameters[1].examples[pathShortened] = 
+            JSON.parse("{\"summary\" : \"Example " + pathShortened + "\", \"value\" : \"" + pathShortened + "\"}");
+    } catch(e){
+    	console.log(e);
+    }
+
+    try{
+    	documentation.components.schemas[pathShortened] = 
+    		JSON.parse("{\"xml\" : { \"name \": \"" + pathShortened + "\"}, \"type\" : \"object\", \"properties\" : {} }");
+    } catch(e){
+    	console.log(e)
+    }
+
+
+    try{
+    	for(var i = 0; i < properties.length; i++){
+    		//TODO: example value
+    		documentation.components.schemas[pathShortened].properties[properties[Object.keys(properties)[i]].name] = 
+    			JSON.parse("{\"type\" : \"string\", \"example\" : \"" + "value" + "\" }");;
+    	}
+    } catch(e){
+    	console.log(e)
+    }
+
 	finishedAsync()
 	
 
@@ -273,9 +301,15 @@ function addPathToDoc(pathValue, properties){
 
 // Documentation function
 function initDoc(){
-	documentation = {
-		openapi: "3.0.0", info: { version: "1", title: "API to endpoint", description: "Endpoint url: " + endpoint }, 
-		paths: {}, servers: [ { url : "https://wake.dlsi.ua.es/UniversalAPI/?endpoint=" + endpoint } ]
+	documentation = openapiTemplate;
+
+	try{
+		var openapiTemplateString = JSON.stringify(openapiTemplate)
+		openapiTemplateString = openapiTemplateString.split("defaultEndpointURL").join(endpoint);
+		//console.log(openapiTemplateString)
+		documentation = JSON.parse(openapiTemplateString);
+	} catch(e){
+		console.log(e);
 	}
 }
 
@@ -294,15 +328,26 @@ function pathShortener(pathValue){
 	if(pathValue.includes('#')){
 		var splitedHastag = pathValue.split('#')
 		return splitedHastag[splitedHastag.length - 1]
-	} else {
+	} else if(pathValue.includes('/')){
 		var splitedSlash = pathValue.split('/')
 		return splitedSlash[splitedSlash.length - 1]
+	} else {
+		return pathValue
 	}
 }
 
 // API to SPARQL function
 function getEndpointClassesFromResource(){
-	var httpGet = endpoint + '?query=' + 'SELECT DISTINCT ?class WHERE { ?s a ?class . }' + '&format=application%2Fsparql-results%2Bjson'
+
+	var pathResource = path
+	/*try {
+		pathResource = path.substring(1)
+    } catch(e) {
+        console.log(e);
+    }*/
+
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . ' + 'FILTER (?class LIKE \'%' + pathResource + '%\')' + ' }')
+	  + '&format=application%2Fsparql-results%2Bjson' + '&timeout=5000'
 	//console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -331,6 +376,7 @@ function getEndpointClassesFromResource(){
 		    if (e instanceof SyntaxError) {
 		        console.log(e)
 		    }
+		    console.log(data);
 		}
 
 		//var paths = []
@@ -350,13 +396,6 @@ function getEndpointClassesFromResource(){
             var valueShortened = pathShortener(value);
 			//console.log(value)
 			//paths.push(valueShortened)
-
-			var pathResource = path
-			try {
-				pathResource = path.substring(1)
-		    } catch(e) {
-		        console.log(e);
-		    }
 
 			if(pathResource === valueShortened){
 				//TODO: se podría llamar directamente sin comprobar si ese recurso existe (?)
@@ -380,7 +419,7 @@ function getEndpointClassesFromResource(){
 
 // API to SPARQL function
 function getClassPropertiesFromParameters(pathValue, properties, callback){
-	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }') + '&format=application%2Fsparql-results%2Bjson'
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }') + '&format=application%2Fsparql-results%2Bjson'  + '&timeout=500'
 	//console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -487,7 +526,7 @@ function generateSparql(pathToResource, properties){
 	console.log("sparql query generated: " + sparql)
 
 
-	var httpGet = endpoint + '?query=' + escape(sparql)  + '&format=application%2Fsparql-results%2Bjson'
+	var httpGet = endpoint + '?query=' + escape(sparql)  + '&format=application%2Fsparql-results%2Bjson' + '&timeout=5000'
 	console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
