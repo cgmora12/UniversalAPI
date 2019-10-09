@@ -45,7 +45,7 @@ function basicQuery(){
 	document.getElementById("loader").style.display = "block";
 
 	var url = '/UniversalAPIQuery'
-	url += '?endpoint=' + $('#endpoint').val() + "&documentation=true"
+	url += '?endpoint=' + $('#endpoint').val() + '&basicQuery=true&step=1'
 
 	if(jsonResults){
 		basicQueryFill()
@@ -57,7 +57,7 @@ function basicQuery(){
 			responseType:'application/json',
 			success: function (data) {
 				if(data){
-					//console.log(data)
+					console.log(data)
 					if(data.results || data.error){
 						if(data.results){						
 							jsonResults = data.results;
@@ -93,7 +93,6 @@ function basicQueryFill(){
 	$('#basicQueryBtn').val("API query")
 	$('#collapseSparqlQuery').collapse("hide");
 	$('#collapsePath').collapse("show");
-	$('#collapseCompleteQuery').collapse("show");
 	$('#collapseFormat').collapse("show");
 	$('#collapseSend').collapse("show");
 	$('#collapseSendSparql').collapse("hide");
@@ -101,7 +100,7 @@ function basicQueryFill(){
 	$('#collapseResults').collapse("hide");
 
 	// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonResults.paths
-	var options = Object.keys(jsonResults.paths["/"].get.parameters[1].examples);
+	var options = jsonResults//Object.keys(jsonResults.paths["/"].get.parameters[1].examples);
 	var optionsOrdered = options.sort()
 	$('#path').empty();
 	$('#path').append($('<option></option>'));
@@ -109,27 +108,67 @@ function basicQueryFill(){
 	    $('#path').append($('<option></option>').val(p).html(p));
 	});
 	$("#path").on('change', function() {
+
+		document.getElementById("loader").style.display = "block";
 		$('.collapseProperty').collapse("show");
 		$('#collapseProperties').collapse("show");
 		$('.property').empty();
 		$('.property').append($('<option></option>'));
 		var selectedPath = $("#path").val()
-		var jsonProperties = Object.keys(jsonResults.components.schemas[selectedPath].properties)
-		//console.log(jsonProperties)
-		var options = []
-		var i
-		for(i = 0; i < jsonProperties.length; i++){
-			var value = jsonProperties[i]
-			options.push(value)
-		}
-		var optionsOrdered = options.sort()
-		// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonProperties
-		$.each(optionsOrdered, function(i, p) {
-		    $('.property').append($('<option></option>').val(p).html(p));
+
+		var url = '/UniversalAPIQuery'
+		url += '?endpoint=' + $('#endpoint').val() + '&path=' + selectedPath + '&basicQuery=true&step=2'
+
+		$.ajax({
+			url: url,
+			//dataType: 'jsonp',
+			//dataType: "text",
+			responseType:'application/json',
+			success: function (data) {
+				if(data){
+					console.log(data)
+					if(data.results || data.error){
+						if(data.results){						
+							var jsonProperties = data.results
+							//console.log(jsonProperties)
+							var options = []
+							var i
+							for(i = 0; i < jsonProperties.length; i++){
+								var value = jsonProperties[i].name
+								options.push(value)
+							}
+							var optionsOrdered = options.sort()
+							// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonProperties
+							$.each(optionsOrdered, function(i, p) {
+							    $('.property').append($('<option></option>').val(p).html(p));
+							});
+							$(".property").on('change', function() {
+								$('.collapsePropertyValue').collapse("show");
+							});
+
+							$('#collapseCompleteQuery').collapse("show");
+						} else {
+							basicQueryNotFill(data.error)
+						}
+					}
+					else {
+						basicQueryNotFill()
+					}
+				}
+				else {
+					basicQueryNotFill()
+				}
+
+				document.getElementById("loader").style.display = "none";
+			},
+			error: function(error){
+				basicQueryNotFill()
+
+				document.getElementById("loader").style.display = "none";
+			}
 		});
-		$(".property").on('change', function() {
-			$('.collapsePropertyValue').collapse("show");
-		});
+
+		
 	});
 }
 
@@ -181,8 +220,8 @@ function documentation(){
 
 	document.getElementById("loader").style.display = "block";
 
-	var url = '/UniversalAPIQuery'
-	url += '?endpoint=' + $('#endpoint').val() + "&documentation=true"
+	var url = '/UniversalAPIQuery/docs'
+	url += '?endpoint=' + $('#endpoint').val()
 
 	if(jsonResults){
 		documentationReady()
@@ -408,7 +447,7 @@ function sendSparql(){
 		offset = "&offset=" + $("#offset").val()
 	}
 
-	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + limit + offset + '&query=' + escape($('#sparqlQuery').val())
+	var url = '/UniversalAPIQuery/sparql' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + limit + offset + '&query=' + escape($('#sparqlQuery').val())
 
 	//mostrar url en la interfaz
 	//console.log(url)

@@ -21,8 +21,8 @@ module.exports = function(app, db) {
 	app.get('/UniversalAPI', (req, res) => {
     	res.sendFile('web/webAPI.html', {root: '.' })
 	});
-	// Query the Universal API
-	app.get('/UniversalAPIQuery', (req, res) => {
+	// Get endpoint documentation
+	app.get('/UniversalAPIQuery/docs', (req, res) => {
 		responsed = false
 		try{
 			console.log("params: " + JSON.stringify(req.query))
@@ -30,19 +30,43 @@ module.exports = function(app, db) {
 			response = res
 			var query = req.query
 			endpoint = req.query.endpoint
-			var documentationParameter = req.query.documentation
-			path = req.query.path
-			properties = req.query.properties
 			limit = req.query.limit
 			offset = req.query.offset
-			var sparql = req.query.query
-			var sparqlGraph = req.query['default-graph-uri']
 			format = req.query.format
 			var debug = req.query.debug
 			var timeout = req.query.timeout
 
 			if(typeof endpoint !== 'undefined' && endpoint){
+				console.log('Get endpoint documentation')
+				//get documentation
+				initDoc()
+				getEndpointClasses()
+			}
+			else {
+				finalResponse({error: 'API to LOD -> Missing parameter "endpoint"'})
+			}
+		} catch (e){
+			console.log(e)
+			finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		}
+	});
+	// SPARQL query
+	app.get('/UniversalAPIQuery/sparql', (req, res) => {
+		responsed = false
+		try{
+			console.log("params: " + JSON.stringify(req.query))
 
+			response = res
+			var query = req.query
+			var sparql = req.query.query
+			endpoint = req.query.endpoint
+			limit = req.query.limit
+			offset = req.query.offset
+			format = req.query.format
+			var debug = req.query.debug
+			var timeout = req.query.timeout
+
+			if(typeof endpoint !== 'undefined' && endpoint){
 				if(typeof sparql !== 'undefined' && sparql){
 					// query sparql
 					console.log('sparql: ' + sparql)
@@ -69,32 +93,75 @@ module.exports = function(app, db) {
 					}
 
 					sparqlQuery(sparql, sparqlGraph, debug, timeout)
-				} else if(documentationParameter === "true"){
-							console.log('documentation: ' + documentationParameter)
-							//get documentation
-							initDoc()
-							getEndpointClasses()
-				} else {
-					if(typeof path !== 'undefined' && path) {
-						//if(path.charAt(0) == '/'){
-							console.log('path: ' + path)
-							// autogenerate sparql
-							// generate sparql query with resource and properties
-							
-							//generateSparql(path);
-							getEndpointClassesFromResource()
-						/*} else {
-							// TODO: sparql directly
-							// query sparl
-							sparql = path
-							console.log('sparql: ' + sparql)
-							sparqlQuery(sparql)
-						}*/
-					} else {
-						sparqlQuery()
-					}
 				}
+				else {
+					finalResponse({error: 'API to LOD -> Missing query in SPARQL'})
+				}
+			}
+			else {
+				finalResponse({error: 'API to LOD -> Missing parameter "endpoint"'})
+			}
+		} catch (e){
+			console.log(e)
+			finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		}
+	});
+	// Query the Universal API
+	app.get('/UniversalAPIQuery', (req, res) => {
+		responsed = false
+		try{
+			console.log("params: " + JSON.stringify(req.query))
 
+			response = res
+			var query = req.query
+			var basicQuery = req.query.basicQuery
+			var step = req.query.step
+			endpoint = req.query.endpoint
+			var documentationParameter = req.query.documentation
+			path = req.query.path
+			properties = req.query.properties
+			limit = req.query.limit
+			offset = req.query.offset
+			var sparql = req.query.query
+			var sparqlGraph = req.query['default-graph-uri']
+			format = req.query.format
+			var debug = req.query.debug
+			var timeout = req.query.timeout
+
+			if(typeof endpoint !== 'undefined' && endpoint){
+				
+				if (typeof basicQuery !== 'undefined' && basicQuery){
+
+					if(typeof step !== 'undefined' && step){
+						if(step == '1'){
+							getEndpointClassesWithoutProperties()
+						} else if(step == '2' && typeof path !== 'undefined' && path){
+							getEndpointClassFromPath(path)
+						} else {
+							getEndpointClassesWithoutProperties()
+						}
+					} else {
+						getEndpointClassesWithoutProperties()
+					} 
+				} else if(typeof path !== 'undefined' && path) {
+					//if(path.charAt(0) == '/'){
+						console.log('path: ' + path)
+						// autogenerate sparql
+						// generate sparql query with resource and properties
+						
+						//generateSparql(path);
+						getEndpointClassesFromResource()
+					/*} else {
+						// TODO: sparql directly
+						// query sparl
+						sparql = path
+						console.log('sparql: ' + sparql)
+						sparqlQuery(sparql)
+					}*/
+				}
+				else {
+					finalResponse({error: 'API to LOD -> Missing resource to perform the query (parameter "path")'})
+				}
 				
 			}
 			else {
@@ -107,6 +174,228 @@ module.exports = function(app, db) {
 	});
 };
 
+// UAPI guided function
+function getEndpointClassesWithoutProperties(){
+	//Query similar
+	/*
+		SELECT DISTINCT ?directSub WHERE {
+	    ?directSub rdfs:subClassOf ?super .
+	    OPTIONAL {
+	        ?directSub rdfs:subClassOf ?otherSub .
+	        FILTER (?otherSub = ?directSub)
+	    }
+	    FILTER (!BOUND(?otherSub ))
+	}*/
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }') + '&format=application%2Fsparql-results%2Bjson' + '&timeout=10000'
+	//console.log(httpGet)
+
+	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	try{
+		var req = http.get(httpGet, (resp) => {
+		  let data = '';
+
+		  // A chunk of data has been recieved.
+		  resp.on('data', (chunk) => {
+		    data += chunk;
+		  });
+
+		  // The whole response has been received. Print out the result.
+		  resp.on('end', () => {
+		  	//console.log("data: " + data);
+		  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+			// Return data to users formatted in JSON
+			//
+			var results = data
+			try {
+			    results = JSON.parse(data)
+			} catch (e) {
+			    if (e instanceof SyntaxError) {
+			        console.log(e)
+			    }
+			}
+
+
+			try {
+				var paths = []
+			  	var jsonPaths = results.results.bindings
+			  	var i;
+			  	for(i=0;i<jsonPaths.length;i++)
+		        {
+		            var jsonObject1 = jsonPaths[i];
+		            var value = jsonObject1.class["value"];
+					//console.log(value)
+					//paths.push(value)
+					paths.push(pathShortener(value))
+		        }
+		        /*finishedAsync = _.after(i, createDocumentation);
+		        getClassesProperties(paths)*/
+
+				finalResponse({results: paths})
+	    	} catch (e){
+				console.log(e)
+				finalResponse({error: "API to LOD -> Error querying the endpoint"})
+			}
+		  });
+		});
+
+		req.on('error', function(e) {
+		  console.log('ERROR: ' + e.message);
+		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		});
+	} catch (e){
+		console.log(e)
+		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+	}
+};
+
+//UAPI guided function
+function getEndpointClassFromPath(pathValue){
+	//console.log("getEndpointClassFromPath " + pathValue)
+	/*try {
+		pathResource = path.substring(1)
+    } catch(e) {
+        console.log(e);
+    }*/
+
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . ' + 'FILTER (?class LIKE \'%' + pathValue + '%\')' + ' }')
+	  + '&format=application%2Fsparql-results%2Bjson' + '&timeout=5000'
+	//console.log(httpGet)
+
+	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	var req = http.get(httpGet, (resp) => {
+	  let data = '';
+
+	  // A chunk of data has been recieved.
+	  resp.on('data', (chunk) => {
+	    data += chunk;
+	  });
+
+	  // The whole response has been received. Print out the result.
+	  resp.on('end', () => {
+	  	//console.log("data: " + data);
+	  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+		// Return data to users formatted in JSON
+		//
+		var results = data
+		try {
+		    results = JSON.parse(data)
+		} catch (e) {
+		    if (e instanceof SyntaxError) {
+		        console.log(e)
+		    }
+		    console.log(data);
+		}
+
+		//var paths = []
+		var jsonPaths = []
+		try {
+		    jsonPaths = results.results.bindings
+		} catch (e) {
+		    if (e instanceof SyntaxError) {
+		        console.log(e)
+		    }
+		}
+	  	var i;
+	  	for(i=0;i<jsonPaths.length;i++)
+        {
+            var jsonObject1 = jsonPaths[i];
+            var value = jsonObject1.class["value"];
+            var valueShortened = pathShortener(value);
+			//console.log(value)
+			//paths.push(valueShortened)
+
+			if(pathValue === valueShortened){
+				//TODO: se podría llamar directamente sin comprobar si ese recurso existe (?)
+				//console.log("generateSparql: pathResource=" + pathResource + " properties=" + JSON.stringify(properties))
+				getEndpointPropertiesFromClass(value)
+				return;
+			}
+        }
+
+	  	finalResponse({error: 'API to LOD -> Error generating the SPARQL query: check that the endpoint and the path are correct...'})
+
+	  });
+	});
+
+
+	req.on('error', function(e) {
+	  console.log('ERROR: ' + e.message);
+	  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+	});
+}
+function getEndpointPropertiesFromClass(pathValue){
+	//console.log("getEndpointPropertiesFromClass " + pathValue)
+	sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
+	var httpGet = endpoint + '?query=' + escape(sparql) + '&format=application%2Fsparql-results%2Bjson' + '&timeout=500'
+	//console.log(httpGet)
+
+	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+	var req = http.get(httpGet, (resp) => {
+	  let data = '';
+
+	  // A chunk of data has been recieved.
+	  resp.on('data', (chunk) => {
+	    data += chunk;
+	  });
+
+	  // The whole response has been received. Print out the result.
+	  resp.on('end', () => {
+	  	//console.log("data: " + data);
+	  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+		// Return data to users formatted in JSON
+		//
+		var properties = []
+		var results = data
+		try {
+		    results = JSON.parse(data)
+			var jsonProperties = results.results.bindings
+
+			try {
+			  	var i;
+			  	for(i=0;i<jsonProperties.length;i++)
+		        {
+		            var jsonObject1 = jsonProperties[i];
+		            var value = jsonObject1.property["value"];
+					//console.log(value)
+					properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
+		        }
+
+			} catch (e) {
+			    if (e instanceof SyntaxError) {
+			        console.log(e)
+			    }
+			}
+
+	  		finalResponse({results: properties})
+
+		} catch (e) {
+		    if (e instanceof SyntaxError) {
+		        //console.log(e)
+		    }
+		    console.log("Error at: " + data)
+	  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		}
+	  });
+	});
+
+
+	req.on('error', function(e) {
+	  console.log('ERROR: ' + e.message);
+	  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+	});
+}
 
 // Documentation function
 function getEndpointClasses(){
