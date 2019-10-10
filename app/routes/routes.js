@@ -1058,6 +1058,13 @@ function returnResults(results, sparql){
 		            var jsonObjectProperty = { }
 		            jsonObjectProperty[propertyName] = propertyValue
 		            jsonObject[objectName] = jsonObjectProperty
+
+		            // Add JSON-LD Context property
+		            if(format === "json-ld"){
+		            	jsonObject[objectName]["@context"] = jsonResults[i].object.value;
+		            	jsonObject[objectName]["@id"] = jsonResults[i].subject.value;
+					} 
+
 					//console.log(value)
 					jsonResultsParsed.push(jsonObject)
 					jsonResultsParsedAux.push(objectName)
@@ -1089,7 +1096,7 @@ function returnResults(results, sparql){
 			jsonFinalResults.results = jsonResultsParsed
 			//var returnResults = JSON.stringify(jsonFinalResults)
 
-			if(format === "csv"){
+			if(format === "csv" || format === "table"){
 				try{
 					/*console.log('ORIGINAL:');
 					console.log(JSON.stringify(jsonFinalResults.Alicante));
@@ -1103,7 +1110,7 @@ function returnResults(results, sparql){
 					console.log(CSVString);
 
 					finalResponse({results: JSON.stringify(CSVString), query: sparql})*/
-					
+
 					const opts = { fields: fieldsArray }
 					//const opts2 = { fields: fieldsArray, header: false }
 					var csv = ""
@@ -1118,15 +1125,16 @@ function returnResults(results, sparql){
 					
 					csv += parse(csvContents/*, opts*/);
 
-					finalResponseCSV(csv)
+					if(format === "csv"){
+						finalResponseCSV(csv)
+					} else {
+						finalResponse({results: csv, query: sparql})
+					}
 				}
 				catch(e){
 					console.log(e)
 					finalResponse({error: "API to LOD -> Error parsing to CSV", query: sparql})
 				}
-			} 
-			else if(format === "json-ld"){
-				finalResponse({results: jsonFinalResults, query: sparql})
 			} 
 			else{
 				// JSON format

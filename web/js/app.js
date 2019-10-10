@@ -424,6 +424,9 @@ function send(){
 						else if($("#format").val() === "csv"){
 							$('#textareaResult').val(data.results);
 						}
+						else if($("#format").val() === "table"){
+							showTable(data.results);
+						}
 						else {
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
 						}
@@ -433,24 +436,7 @@ function send(){
 					}
 				}
 				else {
-					$('#textareaResult').val(data);
-
-					$('#csvTable').html('');
-
-	                var parsedCSV = d3.csv.parseRows(data);
-	                var container = d3.select("#csvTable")
-	                    .append("table")
-
-	                    .selectAll("tr")
-	                        .data(parsedCSV).enter()
-	                        .append("tr")
-
-	                    .selectAll("td")
-	                        .data(function(d) { return d; }).enter()
-	                        .append("td")
-	                        .text(function(d) { return d; });
-
-					document.getElementById("csvTable").style.display = "block";
+					showTable(data);
 				}
 
 				if(data.query){
@@ -467,6 +453,28 @@ function send(){
 			$('#textareaResult').val("Error querying the endpoint");
 		}
 	});
+}
+
+function showTable(data){
+	
+	$('#textareaResult').val(data);
+
+	$('#csvTable').html('');
+
+    var parsedCSV = d3.csv.parseRows(data);
+    var container = d3.select("#csvTable")
+        .append("table")
+
+        .selectAll("tr")
+            .data(parsedCSV).enter()
+            .append("tr")
+
+        .selectAll("td")
+            .data(function(d) { return d; }).enter()
+            .append("td")
+            .text(function(d) { return d; });
+
+	document.getElementById("csvTable").style.display = "block";
 }
 
 function sendSparql(){
