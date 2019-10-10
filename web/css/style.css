@@ -11,3 +11,26 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.divTable {  
+  height: 500px;
+  width: 800px;
+  overflow-x: auto;
+  overflow-y: auto;
+  display: none;
+  margin-bottom: 20px;
+}
+
+table {
+  border-collapse: collapse;
+  border: 2px black solid;
+  font: 12px sans-serif;
+}
+
+td {
+  max-width:67%;
+  border: 1px black solid;
+  padding: 5px;
+  white-space:pre-wrap; 
+  word-wrap:break-word;
+}

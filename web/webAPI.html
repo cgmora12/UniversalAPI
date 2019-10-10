@@ -6,6 +6,7 @@
 
         <script src="/UniversalAPI/web/js/jquery.min.js" type="text/javascript"></script>
         <script src="/UniversalAPI/web/js/bootstrap.min.js" type="text/javascript"></script>
+        <script src="/UniversalAPI/web/js/d3.min.js?v=3.2.8"></script>
         <script src="/UniversalAPI/web/js/app.js" type="text/javascript"></script>
 
         <link href="/UniversalAPI/web/css/bootstrap.css" rel="stylesheet">
@@ -123,6 +124,7 @@
                                     <!--<input class="form-control" id="path">-->
                                     <select class="form-control" id='format'>
                                         <option value="json">JSON</option>
+                                        <option value="csv">CSV (table)</option>
                                         <option value="triples">Triples (JSON)</option>
                                     </select>
                                 </div>
@@ -163,6 +165,8 @@
                             <h3><a data-toggle="collapse" data-parent="#accordion" href="#collapse3">Result</a></h3>
                         </div>
                         <div id="collapse3" class="panel-collapse collapse in show col-sm-12 col-lg-12">
+                            <div id="csvTable" class="divTable">
+                            </div>
                             <textarea id="textareaResult" readonly="true" class="form-control col-lg-9" placeholder="{ ... }" style="max-width: 100%; height: 190px; margin: 0px -36.5px 0px 0px; width: 695px;"></textarea>
                         </div>
                     </div>

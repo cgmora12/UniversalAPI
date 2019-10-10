@@ -19,6 +19,7 @@ function editEndpoint(){
 	$('#collapseProperties').collapse("hide");
 	$('#collapseResults').collapse("hide");
 	document.getElementById("loader").style.display = "none";
+	document.getElementById("csvTable").style.display = "none";
 	jsonResults = ""
 }
 
@@ -43,6 +44,7 @@ function basicQuery(){
 	$('#sparqlQueryBtn').prop('disabled', true);
 
 	document.getElementById("loader").style.display = "block";
+	document.getElementById("csvTable").style.display = "none";
 
 	var url = '/UniversalAPIQuery'
 	url += '?endpoint=' + $('#endpoint').val() + '&basicQuery=true&step=1'
@@ -89,6 +91,7 @@ function basicQueryFill(){
 	$('#sparqlQueryBtn').prop('disabled', false);
 
 	document.getElementById("loader").style.display = "none";
+	document.getElementById("csvTable").style.display = "none";
 
 	$('#basicQueryBtn').val("API query")
 	$('#collapseSparqlQuery').collapse("hide");
@@ -108,10 +111,12 @@ function basicQueryFill(){
 	    $('#path').append($('<option></option>').val(p).html(p));
 	});
 	$("#path").on('change', function() {
+		$('#collapseCompleteQuery').collapse("hide");
+		$('#collapseFormat').collapse("hide");
+		$('#collapseSend').collapse("hide");
 
 		document.getElementById("loader").style.display = "block";
-		$('.collapseProperty').collapse("show");
-		$('#collapseProperties').collapse("show");
+		document.getElementById("csvTable").style.display = "none";
 		$('.property').empty();
 		$('.property').append($('<option></option>'));
 		var selectedPath = $("#path").val()
@@ -128,7 +133,13 @@ function basicQueryFill(){
 				if(data){
 					console.log(data)
 					if(data.results || data.error){
-						if(data.results){						
+						if(data.results){		
+							$('.collapseProperty').collapse("show");
+							$('#collapseProperties').collapse("show");	
+							$('#collapseCompleteQuery').collapse("show");
+							$('#collapseFormat').collapse("show");
+							$('#collapseSend').collapse("show");
+
 							var jsonProperties = data.results
 							//console.log(jsonProperties)
 							var options = []
@@ -160,11 +171,13 @@ function basicQueryFill(){
 				}
 
 				document.getElementById("loader").style.display = "none";
+				document.getElementById("csvTable").style.display = "none";
 			},
 			error: function(error){
 				basicQueryNotFill()
 
 				document.getElementById("loader").style.display = "none";
+				document.getElementById("csvTable").style.display = "none";
 			}
 		});
 
@@ -182,6 +195,7 @@ function basicQueryNotFill(errorObject){
 	$('#endpoint').prop('disabled', false);
 
 	document.getElementById("loader").style.display = "none";
+	document.getElementById("csvTable").style.display = "none";
 
 	var error = "Error querying the endpoint"
 	if(errorObject){
@@ -219,6 +233,7 @@ function documentation(){
 	$('#sparqlQueryBtn').prop('disabled', true);
 
 	document.getElementById("loader").style.display = "block";
+	document.getElementById("csvTable").style.display = "none";
 
 	var url = '/UniversalAPIQuery/docs'
 	url += '?endpoint=' + $('#endpoint').val()
@@ -271,6 +286,7 @@ function documentationReady(){
 	$('#collapseResults').collapse("show");
 
 	document.getElementById("loader").style.display = "none";
+	document.getElementById("csvTable").style.display = "none";
 
 	var jsonResultsFormatted = JSON.stringify(jsonResults, null, 2);
 	$('#textareaResult').val(jsonResultsFormatted);
@@ -300,6 +316,7 @@ function documentationNotReady(errorObject){
 	$('#endpoint').prop('disabled', false);
 
 	document.getElementById("loader").style.display = "none";
+	document.getElementById("csvTable").style.display = "none";
 
 	var error = "Error querying the endpoint"
 	if(errorObject){
@@ -343,8 +360,10 @@ function send(){
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
 	$('#collapseResults').collapse("hide");
+	$("#format").prop('disabled', true);
 
 	document.getElementById("loader").style.display = "block";
+	document.getElementById("csvTable").style.display = "none";
 
 	var limit = ""
 	var offset = ""
@@ -389,8 +408,10 @@ function send(){
 			$('#documentation').prop('disabled', false);
 			$('#basicQueryBtn').prop('disabled', false);
 			$('#sparqlQueryBtn').prop('disabled', false);
+			$("#format").prop('disabled', false);
 
 			document.getElementById("loader").style.display = "none";
+			document.getElementById("csvTable").style.display = "none";
 
 			if(data){
 				console.log(data)
@@ -399,6 +420,9 @@ function send(){
 					if(data.results){
 						if($("#format").val() === "triples"){
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
+						}
+						else if($("#format").val() === "csv"){
+							$('#textareaResult').val(data.results);
 						}
 						else {
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
@@ -409,7 +433,24 @@ function send(){
 					}
 				}
 				else {
-					$('#textareaResult').val('Error querying the endpoint');
+					$('#textareaResult').val(data);
+
+					$('#csvTable').html('');
+
+	                var parsedCSV = d3.csv.parseRows(data);
+	                var container = d3.select("#csvTable")
+	                    .append("table")
+
+	                    .selectAll("tr")
+	                        .data(parsedCSV).enter()
+	                        .append("tr")
+
+	                    .selectAll("td")
+	                        .data(function(d) { return d; }).enter()
+	                        .append("td")
+	                        .text(function(d) { return d; });
+
+					document.getElementById("csvTable").style.display = "block";
 				}
 
 				if(data.query){
@@ -437,6 +478,7 @@ function sendSparql(){
 	$('#collapseResults').collapse("hide");
 
 	document.getElementById("loader").style.display = "block";
+	document.getElementById("csvTable").style.display = "none";
 	
 	var limit = ""
 	var offset = ""
@@ -467,6 +509,7 @@ function sendSparql(){
 			$('#sparqlQueryBtn').prop('disabled', false);
 
 			document.getElementById("loader").style.display = "none";
+			document.getElementById("csvTable").style.display = "none";
 
 			if(data){
 				console.log(data)

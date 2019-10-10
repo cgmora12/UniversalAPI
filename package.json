@@ -12,6 +12,7 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
+    "json2csv": "^4.5.4",
     "underscore": "^1.9.1"
   },
   "devDependencies": {

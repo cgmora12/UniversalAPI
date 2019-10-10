@@ -3,6 +3,7 @@
 const http 		 = require('http');
 var _ = require('underscore');
 let openapiTemplate = require('./openapiTemplate.json');
+const { parse } = require('json2csv');
 
 var endpoint
 var documentation
@@ -15,6 +16,7 @@ var format
 var limit
 var offset
 var pathProperties = []
+var fieldsArray = []
 
 module.exports = function(app, db) {
 	// Web in HTML
@@ -756,13 +758,16 @@ function getClassPropertiesFromParameters(pathValue, properties, callback){
             var jsonObject1 = jsonProperties[i]
             var value = jsonObject1.property["value"]
             var valueShortened = pathShortener(value)
+		  	fieldsArray.push(valueShortened)
+
 			//console.log(value)
 			//properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
 			try{
 				var j
 				for(j = 0; j < Object.keys(propertiesJson).length; j++){
 					if(valueShortened === unescape(Object.keys(propertiesJson)[j])){
-						newProperties.push({name: value, value: unescape(Object.keys(propertiesJson).map((k) => propertiesJson[k])[j])})
+						var valueToAdd = unescape(Object.keys(propertiesJson).map((k) => propertiesJson[k])[j])
+						newProperties.push({name: value, value: valueToAdd})
 					}
 				}
 			} catch(e){
@@ -963,7 +968,8 @@ function returnResults(results, sparql){
 		  	
 	        results.results.bindings = results.results.bindings.slice(offsetNumber, offsetNumber + limitNumber)
 		  	finalResponse({results: results, query: sparql})
-		} else {
+		}
+		else {
 			var jsonResults = results.results.bindings
 		  	var jsonResultsParsed = []
 		  	var jsonFinalResults = {results: []}
@@ -1083,8 +1089,50 @@ function returnResults(results, sparql){
 			jsonFinalResults.results = jsonResultsParsed
 			//var returnResults = JSON.stringify(jsonFinalResults)
 
-			finalResponse({results: jsonFinalResults, query: sparql})
-		  	//finalResponse({results: returnResults, query: sparql})
+			if(format === "csv"){
+				try{
+					/*console.log('ORIGINAL:');
+					console.log(JSON.stringify(jsonFinalResults.Alicante));
+
+					const JSONasPOJO = JSON.parse(JSON.stringify(jsonFinalResults.results));
+					console.log('PARSED:');
+					console.log(JSONasPOJO);
+					const CSVString = JSONasPOJO[0].Alicante.join('\n');
+
+					console.log('CONVERTED:');
+					console.log(CSVString);
+
+					finalResponse({results: JSON.stringify(CSVString), query: sparql})*/
+					
+					const opts = { fields: fieldsArray }
+					//const opts2 = { fields: fieldsArray, header: false }
+					var csv = ""
+					var csvContents = []
+					for(var i = 0; i < Object.values(jsonFinalResults.results).length; i++){
+						//console.log("Object.values(jsonFinalResults.results)[i] " + JSON.stringify(Object.values(jsonFinalResults.results[i])))
+						csvContents.push(Object.values(jsonFinalResults.results[i])[0])
+					}
+					//csv = csv.split('\\"').join("")
+					//console.log("csv " + csv);
+					//console.log("csvContents: " + JSON.stringify(csvContents));
+					
+					csv += parse(csvContents/*, opts*/);
+
+					finalResponseCSV(csv)
+				}
+				catch(e){
+					console.log(e)
+					finalResponse({error: "API to LOD -> Error parsing to CSV", query: sparql})
+				}
+			} 
+			else if(format === "json-ld"){
+				finalResponse({results: jsonFinalResults, query: sparql})
+			} 
+			else{
+				// JSON format
+				finalResponse({results: jsonFinalResults, query: sparql})
+		  		//finalResponse({results: returnResults, query: sparql})
+			}
 		}
 	} catch(e){
 		console.log(e)
@@ -1099,5 +1147,18 @@ function finalResponse(responseObject){
 		responsed = true
 		console.log("Response sent to user");
 		response.json(responseObject)
+	}
+}
+
+function finalResponseCSV(responseObject){
+	if(responsed){
+		console.log("The response has already been sent to the user");
+	} else{
+		responsed = true
+		console.log("Response sent to user");
+		//response.json(responseObject)
+		response.setHeader('Content-disposition', 'attachment; filename=results.csv');
+		response.set('Content-Type', 'text/csv');
+		response.send(responseObject);
 	}
 }
