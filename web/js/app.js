@@ -104,16 +104,13 @@ function basicQueryFill(){
 
 	// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonResults.paths
 	var options = jsonResults//Object.keys(jsonResults.paths["/"].get.parameters[1].examples);
-	var optionsOrdered = options.sort()
+	var optionsOrdered = options.sort(dynamicSort("value"))
 	$('#path').empty();
 	$('#path').append($('<option></option>'));
 	$.each(optionsOrdered, function(i, p) {
-	    $('#path').append($('<option></option>').val(p).html(p));
+	    $('#path').append($('<option></option>').val(p.id).html(p.value + " (" + p.id + ")"));
 	});
 	$("#path").on('change', function() {
-		$('#collapseCompleteQuery').collapse("hide");
-		$('#collapseFormat').collapse("hide");
-		$('#collapseSend').collapse("hide");
 
 		document.getElementById("loader").style.display = "block";
 		document.getElementById("csvTable").style.display = "none";
@@ -136,22 +133,21 @@ function basicQueryFill(){
 						if(data.results){		
 							$('.collapseProperty').collapse("show");
 							$('#collapseProperties').collapse("show");	
-							$('#collapseCompleteQuery').collapse("show");
 							$('#collapseFormat').collapse("show");
 							$('#collapseSend').collapse("show");
+							$('#collapseCompleteQuery').collapse("show");
 
 							var jsonProperties = data.results
 							//console.log(jsonProperties)
 							var options = []
 							var i
 							for(i = 0; i < jsonProperties.length; i++){
-								var value = jsonProperties[i].name
-								options.push(value)
+								options.push({id: jsonProperties[i].id, name: jsonProperties[i].name})
 							}
-							var optionsOrdered = options.sort()
+							var optionsOrdered = options.sort(dynamicSort("name"))
 							// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonProperties
 							$.each(optionsOrdered, function(i, p) {
-							    $('.property').append($('<option></option>').val(p).html(p));
+							    $('.property').append($('<option></option>').val(p.id).html(p.name + " (" + p.id + ")"));
 							});
 							$(".property").on('change', function() {
 								$('.collapsePropertyValue').collapse("show");
@@ -575,4 +571,21 @@ function Bio2RDF(){
 	if(!$('#endpoint').prop('disabled')){
 		$('#endpoint').val('http://bio2rdf.org/sparql')
 	}
+}
+
+function dynamicSort(property) {
+    var sortOrder = 1;
+
+    if(property[0] === "-") {
+        sortOrder = -1;
+        property = property.substr(1);
+    }
+
+    return function (a,b) {
+        if(sortOrder == -1){
+            return b[property].localeCompare(a[property]);
+        }else{
+            return a[property].localeCompare(b[property]);
+        }        
+    }
 }
