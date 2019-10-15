@@ -1,6 +1,7 @@
 // routes/routes.js
 
 const http 		 = require('http');
+const https = require('https');
 var _ = require('underscore');
 let openapiTemplate = require('./openapiTemplate.json');
 const { parse } = require('json2csv');
@@ -22,6 +23,7 @@ var fieldsArray = []
 var maxResultsForClasses
 var pathsResults = []
 var end = false;
+var request
 
 module.exports = function(app, db) {
 	// Web in HTML
@@ -302,7 +304,12 @@ async function getAsyncResults(i){
 	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
 	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
 	try{
-		var req = http.get(httpGet, (resp) => {
+		if(endpoint.includes("https")){
+			request = https
+		} else {
+			request = http
+		}
+		var req = request.get(httpGet, (resp) => {
 		  let data = '';
 
 		  // A chunk of data has been recieved.
@@ -366,110 +373,43 @@ async function getAsyncResults(i){
 }
 function getEndpointPropertiesFromClass(pathValue){
 	//console.log("getEndpointPropertiesFromClass " + pathValue)
-	sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
-	var httpGet = endpoint + '?query=' + escape(sparql) 
-				//+ '&format=application%2Fsparql-results%2Bjson' 
-				+ '&timeout=500'
-	//console.log(httpGet)
+	try{
+		sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
+		var httpGet = endpoint + '?query=' + escape(sparql) 
+					//+ '&format=application%2Fsparql-results%2Bjson' 
+					+ '&timeout=500'
+		//console.log(httpGet)
 
-	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	var req = http.get(httpGet, (resp) => {
-	  let data = '';
-
-	  // A chunk of data has been recieved.
-	  resp.on('data', (chunk) => {
-	    data += chunk;
-	  });
-
-	  // The whole response has been received. Print out the result.
-	  resp.on('end', () => {
-	  	//console.log("data: " + data);
-	  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
-
-		// Return data to users formatted in JSON
-		//
-		var properties = []
-		var results = data
-		try {
-		    results = JSON.parse(parserXml2json.toJson(data))
-		    //console.log(JSON.stringify(results))
-			var jsonProperties = results["sparql"].results.result
-
-			try {
-			  	var i;
-			  	//console.log(JSON.stringify(jsonProperties))
-			  	for(i=0; i < jsonProperties.length; i++)
-		        {
-		            var jsonObject1 = jsonProperties[i];
-		            var value = jsonObject1.binding.uri;
-					//console.log(value)
-					properties.push({id: value, name: pathShortener(value), schema : { type : "string" }, in: "query"})
-		        }
-
-			} catch (e) {
-			    if (e instanceof SyntaxError) {
-			        console.log(e)
-			    }
-			}
-
-	  		finalResponse({results: properties})
-
-		} catch (e) {
-		    if (e instanceof SyntaxError) {
-		        //console.log(e)
-		    }
-		    console.log("Error at: " + data)
-	  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		
+		if(endpoint.includes("https")){
+			request = https
+		} else {
+			request = http
 		}
-	  });
-	});
+		var req = request.get(httpGet, (resp) => {
+		  let data = '';
 
+		  // A chunk of data has been recieved.
+		  resp.on('data', (chunk) => {
+		    data += chunk;
+		  });
 
-	req.on('error', function(e) {
-	  console.log('ERROR: ' + e.message);
-	  finalResponse({error: "API to LOD -> Error querying the endpoint"})
-	});
-}
+		  // The whole response has been received. Print out the result.
+		  resp.on('end', () => {
+		  	//console.log("data: " + data);
+		  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
 
-// API to SPARQL function
-function getEndpointResults(pathValue, properties){
-
-	//console.log("getEndpointPropertiesFromClass " + pathValue)
-	sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
-	var httpGet = endpoint + '?query=' + escape(sparql) 
-				//+ '&format=application%2Fsparql-results%2Bjson' 
-				+ '&timeout=500'
-	//console.log(httpGet)
-
-	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	var req = http.get(httpGet, (resp) => {
-	  let data = '';
-
-	  // A chunk of data has been recieved.
-	  resp.on('data', (chunk) => {
-	    data += chunk;
-	  });
-
-	  // The whole response has been received. Print out the result.
-	  resp.on('end', () => {
-	  	//console.log("data: " + data);
-	  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
-
-		// Return data to users formatted in JSON
-		//
-		//var properties = []
-		var results = data
-		try {
-		    results = JSON.parse(parserXml2json.toJson(data))
-		    //console.log(JSON.stringify(results))
-
-		    /*if(properties && properties.length > 0){
+			// Return data to users formatted in JSON
+			//
+			var properties = []
+			var results = data
+			try {
+			    results = JSON.parse(parserXml2json.toJson(data))
+			    //console.log(JSON.stringify(results))
 				var jsonProperties = results["sparql"].results.result
 
 				try {
@@ -488,25 +428,112 @@ function getEndpointResults(pathValue, properties){
 				        console.log(e)
 				    }
 				}
-			}*/
 
-	  		generateSparql(pathValue, properties)
+		  		finalResponse({results: properties})
 
-		} catch (e) {
-		    if (e instanceof SyntaxError) {
-		        //console.log(e)
-		    }
-		    console.log("Error at: " + data)
-	  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+			} catch (e) {
+			    if (e instanceof SyntaxError) {
+			        //console.log(e)
+			    }
+			    console.log("Error at: " + data)
+		  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+			}
+		  });
+		});
+
+
+		req.on('error', function(e) {
+		  console.log('ERROR: ' + e.message);
+		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		});
+	} catch (e) {
+	    console.log(e)
+  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+	}
+}
+
+// API to SPARQL function
+function getEndpointResults(pathValue, properties){
+	try{
+		//console.log("getEndpointPropertiesFromClass " + pathValue)
+		sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
+		var httpGet = endpoint + '?query=' + escape(sparql) 
+					//+ '&format=application%2Fsparql-results%2Bjson' 
+					+ '&timeout=500'
+		//console.log(httpGet)
+
+		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		if(endpoint.includes("https")){
+			request = https
+		} else {
+			request = http
 		}
-	  });
-	});
+		var req = request.get(httpGet, (resp) => {
+		  let data = '';
+
+		  // A chunk of data has been recieved.
+		  resp.on('data', (chunk) => {
+		    data += chunk;
+		  });
+
+		  // The whole response has been received. Print out the result.
+		  resp.on('end', () => {
+		  	//console.log("data: " + data);
+		  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+			// Return data to users formatted in JSON
+			//
+			//var properties = []
+			var results = data
+			try {
+			    results = JSON.parse(parserXml2json.toJson(data))
+			    //console.log(JSON.stringify(results))
+
+			    /*if(properties && properties.length > 0){
+					var jsonProperties = results["sparql"].results.result
+
+					try {
+					  	var i;
+					  	//console.log(JSON.stringify(jsonProperties))
+					  	for(i=0; i < jsonProperties.length; i++)
+				        {
+				            var jsonObject1 = jsonProperties[i];
+				            var value = jsonObject1.binding.uri;
+							//console.log(value)
+							properties.push({id: value, name: pathShortener(value), schema : { type : "string" }, in: "query"})
+				        }
+
+					} catch (e) {
+					    if (e instanceof SyntaxError) {
+					        console.log(e)
+					    }
+					}
+				}*/
+
+		  		generateSparql(pathValue, properties)
+
+			} catch (e) {
+			    if (e instanceof SyntaxError) {
+			        //console.log(e)
+			    }
+			    console.log("Error at: " + data)
+		  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+			}
+		  });
+		});
 
 
-	req.on('error', function(e) {
-	  console.log('ERROR: ' + e.message);
-	  finalResponse({error: "API to LOD -> Error querying the endpoint"})
-	});
+		req.on('error', function(e) {
+		  console.log('ERROR: ' + e.message);
+		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		});
+	} catch (e) {
+	    console.log(e)
+  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+	}
 }
 
 // API to SPARQL function
@@ -545,47 +572,58 @@ function generateSparql(pathToResource, properties){
 	console.log("sparql query generated: " + sparql)
 
 
-	var httpGet = endpoint + '?query=' + escape(sparql)  
-				//+ '&format=application%2Fsparql-results%2Bjson' 
-				+ '&timeout=5000'
-	console.log(httpGet)
+	try{
+		var httpGet = endpoint + '?query=' + escape(sparql)  
+					//+ '&format=application%2Fsparql-results%2Bjson' 
+					+ '&timeout=5000'
+		console.log(httpGet)
 
-	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	var req = http.get(httpGet, (resp) => {
-	  let data = '';
-
-	  // A chunk of data has been recieved.
-	  resp.on('data', (chunk) => {
-	    data += chunk;
-	  });
-
-	  // The whole response has been received. Print out the result.
-	  resp.on('end', () => {
-	  	//console.log("data: " + data);
-	  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
-
-		// Return data to users formatted in JSON
-		//
-		var results = data
-		try {
-		    results = JSON.parse(parserXml2json.toJson(data))
-		} catch (e) {
-		    if (e instanceof SyntaxError) {
-		        console.log(e)
-		    }
+		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		
+		if(endpoint.includes("https")){
+			request = https
+		} else {
+			request = http
 		}
+		var req = request.get(httpGet, (resp) => {
+		  let data = '';
 
-		returnResults(results, sparql)
-	  	
-	  });
+		  // A chunk of data has been recieved.
+		  resp.on('data', (chunk) => {
+		    data += chunk;
+		  });
 
-	}).on("error", (err) => {
-	  console.log("Error: " + err.message);
+		  // The whole response has been received. Print out the result.
+		  resp.on('end', () => {
+		  	//console.log("data: " + data);
+		  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+			// Return data to users formatted in JSON
+			//
+			var results = data
+			try {
+			    results = JSON.parse(parserXml2json.toJson(data))
+			} catch (e) {
+			    if (e instanceof SyntaxError) {
+			        console.log(e)
+			    }
+			}
+
+			returnResults(results, sparql)
+		  	
+		  });
+
+		}).on("error", (err) => {
+		  console.log("Error: " + err.message);
+		  finalResponse({error: 'API to LOD -> Error querying the endpoint'})
+		});
+	} catch (e) {
+	  console.log(e)
 	  finalResponse({error: 'API to LOD -> Error querying the endpoint'})
-	});
+	}
 }
 
 // Documentation function
@@ -610,7 +648,12 @@ function getEndpointClasses(){
 	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
 	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
 	try{
-		var req = http.get(httpGet, (resp) => {
+		if(endpoint.includes("https")){
+			request = https
+		} else {
+			request = http
+		}
+		var req = request.get(httpGet, (resp) => {
 		  let data = '';
 
 		  // A chunk of data has been recieved.
@@ -679,70 +722,80 @@ function getClassesProperties(paths) {
 
 // Documentation function
 function getClassProperties(pathValue, addPathToDoc){
-	sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
-	var httpGet = endpoint + '?query=' + escape(sparql)
-				// + '&format=application%2Fsparql-results%2Bjson' 
-				+ '&timeout=200'
-	//console.log(httpGet)
+	try{
+		sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
+		var httpGet = endpoint + '?query=' + escape(sparql)
+					// + '&format=application%2Fsparql-results%2Bjson' 
+					+ '&timeout=200'
+		//console.log(httpGet)
 
-	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	var req = http.get(httpGet, (resp) => {
-	  let data = '';
+		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		if(endpoint.includes("https")){
+			request = https
+		} else {
+			request = http
+		}
+		var req = request.get(httpGet, (resp) => {
+		  let data = '';
 
-	  // A chunk of data has been recieved.
-	  resp.on('data', (chunk) => {
-	    data += chunk;
-	  });
+		  // A chunk of data has been recieved.
+		  resp.on('data', (chunk) => {
+		    data += chunk;
+		  });
 
-	  // The whole response has been received. Print out the result.
-	  resp.on('end', () => {
-	  	//console.log("data: " + data);
-	  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+		  // The whole response has been received. Print out the result.
+		  resp.on('end', () => {
+		  	//console.log("data: " + data);
+		  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
 
-		// Return data to users formatted in JSON
-		//
-		var properties = []
-		var results = data
-		try {
-		    results = JSON.parse(data)
-			var jsonProperties = results.results.bindings
-
+			// Return data to users formatted in JSON
+			//
+			var properties = []
+			var results = data
 			try {
-			  	var i;
-			  	for(i=0;i<jsonProperties.length;i++)
-		        {
-		            var jsonObject1 = jsonProperties[i];
-		            var value = jsonObject1.property["value"];
-					//console.log(value)
-					properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
-		        }
+			    results = JSON.parse(data)
+				var jsonProperties = results.results.bindings
+
+				try {
+				  	var i;
+				  	for(i=0;i<jsonProperties.length;i++)
+			        {
+			            var jsonObject1 = jsonProperties[i];
+			            var value = jsonObject1.property["value"];
+						//console.log(value)
+						properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
+			        }
+
+				} catch (e) {
+				    if (e instanceof SyntaxError) {
+				        console.log(e)
+				    }
+				}
+
+		    	addPathToDoc(pathValue, properties)
 
 			} catch (e) {
 			    if (e instanceof SyntaxError) {
-			        console.log(e)
+			        //console.log(e)
 			    }
+			    console.log("Error at: " + data)
+			    finishedAsync()
 			}
-
-	    	addPathToDoc(pathValue, properties)
-
-		} catch (e) {
-		    if (e instanceof SyntaxError) {
-		        //console.log(e)
-		    }
-		    console.log("Error at: " + data)
-		    finishedAsync()
-		}
-	  });
-	});
+		  });
+		});
 
 
-	req.on('error', function(e) {
-	  console.log('ERROR: ' + e.message);
+		req.on('error', function(e) {
+		  console.log('ERROR: ' + e.message);
+		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		});
+	} catch (e) {
+	    console.log(e)
 	  finalResponse({error: "API to LOD -> Error querying the endpoint"})
-	});
+	}
 }
 
 // Documentation function
@@ -826,90 +879,101 @@ function pathShortener(pathValue){
 
 // SPARQL to endpoint function
 function sparqlQuery(sparql, sparqlGraph, debug, timeout){
-	var httpGet
+	try{
+		var httpGet
 
-	var sparqlGraphParameter = ''
-	var formatParameter = ''
-	var debugParameter = ''
-	var timeoutParameter = ''
+		var sparqlGraphParameter = ''
+		var formatParameter = ''
+		var debugParameter = ''
+		var timeoutParameter = ''
 
-	if(sparql === undefined){
-		// Get all triples
-		var limitParameter = ''
-		var offsetParameter = ''
-		if(limit){
-			limitParameter = ' LIMIT ' + limit
-		}
-		if(offset){
-			offsetParameter = ' OFFSET ' + offset
-		}
-
-		sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject ?predicate ?object} ' + limitParameter + offsetParameter
-	}
-
-	if(sparqlGraph !== undefined){
-		sparqlGraphParameter = '&default-graph-uri=' + sparqlGraph
-	}
-
-	if(format !== undefined){
-		if(format==="json"){
-			formatParameter = '&format=application%2Fsparql-results%2Bjson'
-		} else{
-			if(format==="triples"){
-				format = 'application%2Fsparql-results%2Bjson'
+		if(sparql === undefined){
+			// Get all triples
+			var limitParameter = ''
+			var offsetParameter = ''
+			if(limit){
+				limitParameter = ' LIMIT ' + limit
 			}
-			formatParameter = '&format=' + format
-		}
-	} 
+			if(offset){
+				offsetParameter = ' OFFSET ' + offset
+			}
 
-	if(debug !== undefined){
-		debugParameter = '&debug=' + debug
-	}
-	
-	if(timeout !== undefined){
-		timeoutParameter = '&timeout=' + timeout
-	}
+			sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE {?subject ?predicate ?object} ' + limitParameter + offsetParameter
+		}
+
+		if(sparqlGraph !== undefined){
+			sparqlGraphParameter = '&default-graph-uri=' + sparqlGraph
+		}
+
+		if(format !== undefined){
+			if(format==="json"){
+				formatParameter = '&format=application%2Fsparql-results%2Bjson'
+			} else{
+				if(format==="triples"){
+					format = 'application%2Fsparql-results%2Bjson'
+				}
+				formatParameter = '&format=' + format
+			}
+		} 
+
+		if(debug !== undefined){
+			debugParameter = '&debug=' + debug
+		}
 		
-	httpGet = endpoint + '?query=' + escape(sparql) + sparqlGraphParameter + formatParameter + debugParameter + timeoutParameter
-	
-	console.log("httpGet: " + httpGet)
-
-	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
-	http.get(httpGet, (resp) => {
-	  let data = '';
-
-	  // A chunk of data has been recieved.
-	  resp.on('data', (chunk) => {
-	    data += chunk;
-	  });
-
-	  // The whole response has been received. Print out the result.
-	  resp.on('end', () => {
-	  	//console.log("data: " + data);
-	  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
-
-		// Return data to users formatted in JSON
-		//
-		var results = data
-		try {
-		    results = JSON.parse(data)
-		} catch (e) {
-		    if (e instanceof SyntaxError) {
-		        console.log(e)
-		    }
+		if(timeout !== undefined){
+			timeoutParameter = '&timeout=' + timeout
 		}
-	  	
-	  	returnResults(results, sparql);
-	  });
+			
+		httpGet = endpoint + '?query=' + escape(sparql) + sparqlGraphParameter + formatParameter + debugParameter + timeoutParameter
+		
+		console.log("httpGet: " + httpGet)
 
-	}).on("error", (err) => {
-	  console.log("Error: " + err.message);
+		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=PREFIX+rdf%3A+<http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23>+%0D%0APREFIX+owl%3A+<http%3A%2F%2Fwww.w3.org%2F2002%2F07%2Fowl%23>+%0D%0Aselect+%3Fs+%3Flabel+where+%7B%0D%0A+++%3Fs+rdf%3Atype+owl%3AClass+.%0D%0A+++%3Fs+rdfs%3Alabel+%3Flabel+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		//http.get(req.query.endpoint + '?default-graph-uri=&query=SELECT+DISTINCT+%3Fproperty%0D%0AWHERE+%7B%0D%0A++%3Fs+%3Fproperty+%3Fo+.%0D%0A%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
+		if(endpoint.includes("https")){
+			request = https
+		} else {
+			request = http
+		}
+		var req = request.get(httpGet, (resp) => {
+		  let data = '';
+
+		  // A chunk of data has been recieved.
+		  resp.on('data', (chunk) => {
+		    data += chunk;
+		  });
+
+		  // The whole response has been received. Print out the result.
+		  resp.on('end', () => {
+		  	//console.log("data: " + data);
+		  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+			// Return data to users formatted in JSON
+			//
+			var results = data
+			try {
+			    results = JSON.parse(data)
+			} catch (e) {
+			    if (e instanceof SyntaxError) {
+			        console.log(e)
+			    }
+			}
+		  	
+		  	returnResults(results, sparql);
+		  });
+
+		}).on("error", (err) => {
+		  console.log("Error: " + err.message);
+		  finalResponse({error: 'API to LOD -> Error querying the endpoint'})
+		});
+	} catch (e){
+	  console.log(e)
 	  finalResponse({error: 'API to LOD -> Error querying the endpoint'})
-	});
-};
+
+	}
+}
 
 function returnResults(results, sparql){
 	console.log("format: " + format)

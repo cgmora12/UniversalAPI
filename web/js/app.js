@@ -119,7 +119,7 @@ function basicQueryFill(){
 		var selectedPath = $("#path").val()
 
 		var url = '/UniversalAPIQuery'
-		url += '?endpoint=' + $('#endpoint').val() + '&path=' + selectedPath + '&basicQuery=true&step=2'
+		url += '?endpoint=' + $('#endpoint').val() + '&path=' + escape(selectedPath) + '&basicQuery=true&step=2'
 
 		$.ajax({
 			url: url,
@@ -131,11 +131,6 @@ function basicQueryFill(){
 					console.log(data)
 					if(data.results || data.error){
 						if(data.results){		
-							$('.collapseProperty').collapse("show");
-							$('#collapseProperties').collapse("show");	
-							$('#collapseFormat').collapse("show");
-							$('#collapseSend').collapse("show");
-							$('#collapseCompleteQuery').collapse("show");
 
 							var jsonProperties = data.results
 							//console.log(jsonProperties)
@@ -154,6 +149,10 @@ function basicQueryFill(){
 							});
 
 							$('#collapseCompleteQuery').collapse("show");
+							$('.collapseProperty').collapse("show");
+							$('#collapseProperties').collapse("show");	
+							$('#collapseFormat').collapse("show");
+							$('#collapseSend').collapse("show");
 						} else {
 							basicQueryNotFill(data.error)
 						}
