@@ -254,7 +254,7 @@ async function getEndpointClassesWithoutProperties(){
 	var count = 0; 
 	var intervalObject = setInterval(function () {
         //console.log(count, 'seconds passed'); 
-        getAsyncResults(count)
+        getAsyncEndpointClassesWithoutProperties(count)
         if (end) { 
             console.log('Return results'); 
             clearInterval(intervalObject); 
@@ -291,7 +291,7 @@ async function getEndpointClassesWithoutProperties(){
 	
 };
 
-async function getAsyncResults(i){
+async function getAsyncEndpointClassesWithoutProperties(i){
 	//console.log("getAsyncResults" + i);
 	var offset = (maxResultsForClasses * i)
 	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offset) 
@@ -628,6 +628,34 @@ function generateSparql(pathToResource, properties){
 
 // Documentation function
 function getEndpointClasses(){
+
+
+	maxResultsForClasses = 1000
+	end = false;
+	pathsResults = []
+
+	var count = 0; 
+	var intervalObject = setInterval(function () {
+        //console.log(count, 'seconds passed'); 
+        getAsyncEndpointClasses(count)
+        if (end) { 
+            console.log('Return results'); 
+            clearInterval(intervalObject); 
+			//finishedAsync = _.after(count, finalResponse, {results: pathsResults});
+			if(pathsResults && pathsResults.length > 0){
+				createDocumentation()
+			} else {
+		  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+			}
+        }  
+        count++; 
+    }, 1000); 
+
+	
+}
+
+// Documentation function
+async function getAsyncEndpointClasses(i){
 	//Query similar
 	/*
 		SELECT DISTINCT ?directSub WHERE {
@@ -638,9 +666,10 @@ function getEndpointClasses(){
 	    }
 	    FILTER (!BOUND(?otherSub ))
 	}*/
-	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }') 
-					//+ '&format=application%2Fsparql-results%2Bjson' 
-					+ '&timeout=10000'
+	var offset = (maxResultsForClasses * i)
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offset) 
+			//+ '&format=application%2Fsparql-results%2Bjson' 
+			+ '&timeout=2000'
 	//console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -670,58 +699,52 @@ function getEndpointClasses(){
 			//
 			var results = data
 			try {
-			    results = JSON.parse(data)
-			} catch (e) {
-			    if (e instanceof SyntaxError) {
-			        console.log(e)
-			    }
-			}
-
-
-			try {
-				var paths = []
-			  	var jsonPaths = results.results.bindings
-			  	var i;
-			  	for(i=0;i<jsonPaths.length;i++)
-		        {
-		            var jsonObject1 = jsonPaths[i];
-		            var value = jsonObject1.class["value"];
-					//console.log(value)
-					paths.push(value)
-		        }
-		        finishedAsync = _.after(i, createDocumentation);
-		        getClassesProperties(paths)
+			    results = JSON.parse(parserXml2json.toJson(data))
+		  		var jsonPaths = results["sparql"].results.result
+		  		if(typeof jsonPaths !== 'undefined' && jsonPaths){
+					//console.log(JSON.stringify(jsonPaths));
+				  	var i;
+				  	for(i=0;i<jsonPaths.length;i++)
+			        {
+			            var jsonObject1 = jsonPaths[i];
+			            var value = jsonObject1.binding.uri;
+						//console.log(value)
+						//pathsResults.push(value)
+						if(typeof value !== 'undefined' && value && value !== ""){
+							pathsResults.push({id: value, value: pathShortener(value)})
+							getClassProperties(value)
+						}
+			        }
+			        
+					//console.log("finished")
+		    		//finishedAsync()
+	    		} else {
+	    			end = true;
+	    			//console.log("end")
+		    		//finishedAsync()
+	    		}
+		    	
 	    	} catch (e){
 				console.log(e)
-				finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		  		end = true
 			}
 		  });
 		});
 
 		req.on('error', function(e) {
 		  console.log('ERROR: ' + e.message);
+		  end = true
 		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
 	} catch (e){
 		console.log(e)
+		end = true
 		finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	}
-};
-
-// Documentation function
-function getClassesProperties(paths) {
-	//console.log(paths)
-
-  	for(i=0;i<paths.length;i++)
-    {
-        var pathValue = paths[i];
-		// wait for properties get request
-		getClassProperties(pathValue, addPathToDoc)
-    }
 }
 
 // Documentation function
-function getClassProperties(pathValue, addPathToDoc){
+async function getClassProperties(pathValue){
 	try{
 		sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
 		var httpGet = endpoint + '?query=' + escape(sparql)
@@ -756,33 +779,32 @@ function getClassProperties(pathValue, addPathToDoc){
 			var properties = []
 			var results = data
 			try {
-			    results = JSON.parse(data)
-				var jsonProperties = results.results.bindings
+			    results = JSON.parse(parserXml2json.toJson(data))
+		  		var jsonProperties = results["sparql"].results.result
 
 				try {
 				  	var i;
 				  	for(i=0;i<jsonProperties.length;i++)
 			        {
 			            var jsonObject1 = jsonProperties[i];
-			            var value = jsonObject1.property["value"];
+			            var value = jsonObject1.binding.uri;
 						//console.log(value)
-						properties.push({name: pathShortener(value), schema : { type : "string" }, in: "query"})
+
+						// Get property example:
+						// sparql = SELECT DISTINCT ?o WHERE { ?s a <http://geo.linkeddata.es/ontology/Provincia>; <http://www.w3.org/2000/01/rdf-schema#label> ?o . } LIMIT 1
+						properties.push({name: value, description: pathShortener(value), schema : { type : "string" }, in: "query"})
 			        }
 
 				} catch (e) {
-				    if (e instanceof SyntaxError) {
-				        console.log(e)
-				    }
+				    console.log(e)
 				}
 
 		    	addPathToDoc(pathValue, properties)
 
 			} catch (e) {
-			    if (e instanceof SyntaxError) {
-			        //console.log(e)
-			    }
-			    console.log("Error at: " + data)
-			    finishedAsync()
+			    console.log(e)
+			  	//console.log("Error at: " + data)
+			    //finishedAsync()
 			}
 		  });
 		});
@@ -808,13 +830,13 @@ function addPathToDoc(pathValue, properties){
 
 	try{
 		documentation.paths['/'].get.parameters[1].examples[pathShortened] = 
-            JSON.parse("{\"summary\" : \"Example " + pathShortened + "\", \"value\" : \"" + pathShortened + "\"}");
+            JSON.parse("{\"summary\" : \"Example " + pathShortened + "\", \"value\" : \"" + pathValue + "\"}");
     } catch(e){
     	console.log(e);
     }
 
     try{
-    	documentation.components.schemas[pathShortened] = 
+    	documentation.components.schemas[pathValue] = 
     		JSON.parse("{\"xml\" : { \"name \": \"" + pathShortened + "\"}, \"type\" : \"object\", \"properties\" : {} }");
     } catch(e){
     	console.log(e)
@@ -823,15 +845,15 @@ function addPathToDoc(pathValue, properties){
 
     try{
     	for(var i = 0; i < properties.length; i++){
-    		//TODO: example value
-    		documentation.components.schemas[pathShortened].properties[properties[Object.keys(properties)[i]].name] = 
-    			JSON.parse("{\"type\" : \"string\", \"example\" : \"" + "value" + "\" }");;
+    		//TODO: example value and shortened version
+    		documentation.components.schemas[pathValue].properties[properties[Object.keys(properties)[i]].name] = 
+    			JSON.parse("{\"type\" : \"string\", \"example\" : \"" + "value" + "\" }");
     	}
     } catch(e){
     	console.log(e)
     }
 
-	finishedAsync()
+	//finishedAsync()
 	
 
 }
