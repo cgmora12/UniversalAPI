@@ -49,38 +49,34 @@ function basicQuery(){
 	var url = '/UniversalAPIQuery'
 	url += '?endpoint=' + $('#endpoint').val() + '&basicQuery=true&step=1'
 
-	if(jsonResults){
-		basicQueryFill()
-	} else {
-		$.ajax({
-			url: url,
-			//dataType: 'jsonp',
-			//dataType: "text",
-			responseType:'application/json',
-			success: function (data) {
-				if(data){
-					console.log(data)
-					if(data.results || data.error){
-						if(data.results){						
-							jsonResults = data.results;
-							basicQueryFill()
-						} else {
-							basicQueryNotFill(data.error)
-						}
-					}
-					else {
-						basicQueryNotFill()
+	$.ajax({
+		url: url,
+		//dataType: 'jsonp',
+		//dataType: "text",
+		responseType:'application/json',
+		success: function (data) {
+			if(data){
+				console.log(data)
+				if(data.results || data.error){
+					if(data.results){						
+						jsonResults = data.results;
+						basicQueryFill()
+					} else {
+						basicQueryNotFill(data.error)
 					}
 				}
 				else {
 					basicQueryNotFill()
 				}
-			},
-			error: function(error){
+			}
+			else {
 				basicQueryNotFill()
 			}
-		});
-	}
+		},
+		error: function(error){
+			basicQueryNotFill()
+		}
+	});
 	
 }
 
@@ -233,43 +229,38 @@ function documentation(){
 	var url = '/UniversalAPIQuery/docs'
 	url += '?endpoint=' + $('#endpoint').val()
 
-	if(jsonResults){
-		documentationReady()
-	}
-	else {
-		$.ajax({
-			url: url,
-			//dataType: 'jsonp',
-			//dataType: "text",
-			responseType:'application/json',
-			success: function (data) {
-				if(data){
-					$('#collapseResults').collapse("show");
-					//console.log(data)
-					if(data.results || data.error){
-						if(data.results){
-							jsonResults = data.results;
-							$('#query').val(data.sparql);
-							$('#apiquery').val("https://wake.dlsi.ua.es" + url);
-							documentationReady()
-						}
-						else {
-							documentationNotReady(data.error)
-						}
+	$.ajax({
+		url: url,
+		//dataType: 'jsonp',
+		//dataType: "text",
+		responseType:'application/json',
+		success: function (data) {
+			if(data){
+				$('#collapseResults').collapse("show");
+				//console.log(data)
+				if(data.results || data.error){
+					if(data.results){
+						jsonResults = data.results;
+						$('#query').val(data.sparql);
+						$('#apiquery').val("https://wake.dlsi.ua.es" + url);
+						documentationReady()
 					}
 					else {
-						documentationNotReady()
+						documentationNotReady(data.error)
 					}
-				} 
+				}
 				else {
 					documentationNotReady()
 				}
-			},
-			error: function(error){
+			} 
+			else {
 				documentationNotReady()
 			}
-		});
-	}
+		},
+		error: function(error){
+			documentationNotReady()
+		}
+	});
 	
 }
 
@@ -369,7 +360,7 @@ function send(){
 		offset = "&offset=" + $("#offset").val()
 	}
 
-	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + limit + offset + '&path=' + $('#path').val()
+	var url = '/UniversalAPIQuery' + '?endpoint=' + $('#endpoint').val() + "&format=" + $('#format').val() + limit + offset + '&path=' + escape($('#path').val())
 	// check all properties
 	var properties = $('.property')
 	var propertiesUrl = { }
