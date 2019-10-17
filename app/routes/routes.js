@@ -310,6 +310,7 @@ async function getAsyncEndpointClassesWithoutProperties(counter){
 		    	
 	    	} catch (e){
 				console.log(e)
+				//console.log(JSON.stringify(results))
 				//console.log(data)
 		  		end = true
 				wait[counter] = false
@@ -417,7 +418,7 @@ function generateSparql(pathToResource, properties){
 	// generate query taking path and parameter values into account
 
 	// TODO: use Group by, limit, offset and parallelism to improve performance
-	var sparql = 'SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
+	var sparql = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' + ' SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
 		'> . ?subject ?predicate ?object . ';
 	
 	try{
@@ -1037,7 +1038,7 @@ function returnResults(results, sparql){
 		  	finalResponse({results: results, query: sparql})
 		}
 		else {
-			//console.log(JSON.stringify(results))
+			//console.log(JSON.stringify(results).substring(0, 2000))
 			var jsonResults = results["sparql"].results.result
 		  	var jsonResultsParsed = []
 		  	var jsonFinalResults = {results: []}
