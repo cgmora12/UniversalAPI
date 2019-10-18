@@ -1,15 +1,15 @@
 window.onload = function() {
 
 	// Set example endpoints
-    $('#GeoLinkedData').click(function(){ GeoLinkedData(); return false; });
+    /*$('#GeoLinkedData').click(function(){ GeoLinkedData(); return false; });
     $('#RISM').click(function(){ RISM(); return false; });
     $('#AEMET').click(function(){ AEMET(); return false; });
-    $('#Bio2RDF').click(function(){ Bio2RDF(); return false; });
+    $('#Bio2RDF').click(function(){ Bio2RDF(); return false; });*/
 }
 
 function editEndpoint(){
-	$('#endpoint').prop('disabled', false);
-	$("#editEndpoint").collapse("hide");
+	//$('#endpoint').prop('disabled', false);
+	//$("#editEndpoint").collapse("hide");
 	$('#collapseSparqlQuery').collapse("hide");
 	$('#collapsePath').collapse("hide");
 	$('#collapseCompleteQuery').collapse("hide");
@@ -35,7 +35,7 @@ function basicQuery(){
 
 	//$('#collapseSubmits').collapse("hide");
 
-	$('#endpoint').prop('disabled', true);
+	//$('#endpoint').prop('disabled', true);
 
 	$('#basicQueryBtn').val("Loading endpoint...")
 	$('#basicQueryBtn').prop('disabled', true);
@@ -95,7 +95,7 @@ function basicQueryFill(){
 	$('#collapseFormat').collapse("show");
 	$('#collapseSend').collapse("show");
 	$('#collapseSendSparql').collapse("hide");
-	$("#editEndpoint").collapse("show");
+	//$("#editEndpoint").collapse("show");
 	$('#collapseResults').collapse("hide");
 
 	// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonResults.paths
@@ -183,7 +183,7 @@ function basicQueryNotFill(errorObject){
 	$('#sparqlQueryBtn').prop('disabled', false);
 	$('#collapseResults').collapse("show");
 	$('#basicQueryBtn').val("API query")
-	$('#endpoint').prop('disabled', false);
+	//$('#endpoint').prop('disabled', false);
 
 	document.getElementById("loader").style.display = "none";
 	document.getElementById("csvTable").style.display = "none";
@@ -216,7 +216,7 @@ function documentation(){
 	$('#collapseFormat').collapse("hide");
 	$('#collapseResults').collapse("hide");
 
-	$('#endpoint').prop('disabled', true);
+	//$('#endpoint').prop('disabled', true);
 	$('#documentation').prop('disabled', true);
 
 	$('#documentation').val("Loading documentation...")
@@ -299,7 +299,7 @@ function documentationNotReady(errorObject){
 	$('#basicQueryBtn').prop('disabled', false);
 	$('#sparqlQueryBtn').prop('disabled', false);
 	$('#collapseResults').collapse("show");
-	$('#endpoint').prop('disabled', false);
+	//$('#endpoint').prop('disabled', false);
 
 	document.getElementById("loader").style.display = "none";
 	document.getElementById("csvTable").style.display = "none";
@@ -341,7 +341,7 @@ function addProperty(){
 
 function send(){
 	$('#sendQuery').prop('disabled', true);
-	$('#endpoint').prop('disabled', true);
+	//$('#endpoint').prop('disabled', true);
 	$('#documentation').prop('disabled', true);
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
@@ -390,7 +390,7 @@ function send(){
 		success: function (data) {
 			$('#sendQuery').prop('disabled', false);
 			//$('#endpoint').prop('disabled', false);
-			$('#editEndpoint').collapse("show");
+			//$('#editEndpoint').collapse("show");
 			$('#documentation').prop('disabled', false);
 			$('#basicQueryBtn').prop('disabled', false);
 			$('#sparqlQueryBtn').prop('disabled', false);
@@ -465,7 +465,7 @@ function showTable(data){
 
 function sendSparql(){
 	$('#sendSparqlQuery').prop('disabled', true);
-	$('#endpoint').prop('disabled', true);
+	//$('#endpoint').prop('disabled', true);
 	$('#documentation').prop('disabled', true);
 	$('#basicQueryBtn').prop('disabled', true);
 	$('#sparqlQueryBtn').prop('disabled', true);
@@ -497,7 +497,7 @@ function sendSparql(){
 		success: function (data) {
 			$('#sendSparqlQuery').prop('disabled', false);
 			//$('#endpoint').prop('disabled', false);
-			$('#editEndpoint').collapse("show");
+			//$('#editEndpoint').collapse("show");
 			$('#documentation').prop('disabled', false);
 			$('#basicQueryBtn').prop('disabled', false);
 			$('#sparqlQueryBtn').prop('disabled', false);
@@ -539,7 +539,7 @@ function sendSparql(){
 	});
 }
 
-function GeoLinkedData(){
+/*function GeoLinkedData(){
 	if(!$('#endpoint').prop('disabled')){
 		$('#endpoint').val('http://geo.linkeddata.es/sparql')
 	}
@@ -561,7 +561,7 @@ function Bio2RDF(){
 	if(!$('#endpoint').prop('disabled')){
 		$('#endpoint').val('http://bio2rdf.org/sparql')
 	}
-}
+}*/
 
 function dynamicSort(property) {
     var sortOrder = 1;

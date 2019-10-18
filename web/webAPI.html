@@ -31,7 +31,7 @@
         <br>
 
         <div class="row">
-            <div class="col-lg-8 panel-group" id="accordion">
+            <div class="col-lg-12 panel-group" id="accordion">
 
                 <div class="form-group panel panel-default">
                     <div class="panel-heading">
@@ -53,11 +53,87 @@
                                 <label>SPARQL Endpoint</label>
                             </div>
                             <div class="col-10 col-lg-8 form-group">
-                                <input class="form-control " id="endpoint">
+                                <!--<input class="form-control " id="endpoint">-->
+                                <input  class="form-control " id="endpoint" type="text" list="endpointValue" title="Select an endpoint (from the list or another one)" />
+                                <datalist id="endpointValue">
+                                    <option value='http://dbpedia.org/sparql'>DBpedia: http://dbpedia.org/sparql</option>
+                                    <option value='http://es.dbpedia.org/sparql'>Spanish DBpedia: http://es.dbpedia.org/sparql</option>
+                                    <option value='http://fr.dbpedia.org/sparql'>French DBpedia: http://fr.dbpedia.org/sparql</option>
+                                    <option value='http://ja.dbpedia.org/sparql'>Japanese DBpedia: http://ja.dbpedia.org/sparql</option>
+                                    <option value='http://nl.dbpedia.org/sparql'>Dutch DBpedia: http://nl.dbpedia.org/sparql</option>
+                                    <option value='http://pt.dbpedia.org/sparql'>Portuguese DBpedia: http://pt.dbpedia.org/sparql</option>
+                                    <option value='https://opendata.aragon.es/sparql'>AragoDBPedia: https://opendata.aragon.es/sparql</option>
+                                    <option value='http://geo.linkeddata.es/sparql'>GeoLinkedData: http://geo.linkeddata.es/sparql</option>
+                                    <option value='http://aemet.linkeddata.es/sparql'>Aemet: http://aemet.linkeddata.es/sparql</option>
+                                    <option value='https://babelnet.org/sparql/'>BabelNet: https://babelnet.org/sparql/</option>
+                                    <option value='https://semantic.eea.europa.eu/sparql'>European Data: https://semantic.eea.europa.eu/sparql</option>
+                                    <option value='http://sparql.europeana.eu/'>Europeana Linked Open Data: http://sparql.europeana.eu/</option>
+                                    <option value='http://bio2rdf.org/sparql'>Bio: http://bio2rdf.org/sparql</option>
+                                    <option value='http://interpro.bio2rdf.org/sparql'>Bio Interpro: http://interpro.bio2rdf.org/sparql</option>
+                                    <option value='http://bioportal.bio2rdf.org/sparql'>Bio Portal: http://bioportal.bio2rdf.org/sparql</option>
+                                    <option value='http://pubmed.bio2rdf.org/sparql'>Bio Pubmed: http://pubmed.bio2rdf.org/sparql</option>
+                                    <option value='http://taxonomy.bio2rdf.org/sparql'>Bio Taxonomy: http://taxonomy.bio2rdf.org/sparql</option>
+                                    <option value='http://extbi.lab.aau.dk/sparql/'>Agricultral Government Data: http://extbi.lab.aau.dk/sparql/</option>
+                                    <option value='https://www.orpha.net/sparql'>HealthCare Ontology: https://www.orpha.net/sparql</option>
+                                    <option value='http://visualdataweb.infor.uva.es/sparql'>http://visualdataweb.infor.uva.es/sparql</option>
+                                    <option value='http://sparql.odw.tw/'>Open Data Web: http://sparql.odw.tw/</option>
+                                    <option value='http://visualdataweb.infor.uva.es/sparql'>Spanish census: http://visualdataweb.infor.uva.es/sparql</option>
+                                    <option value='http://sparql.sociallink.futuro.media/'>SocialLink: http://sparql.sociallink.futuro.media/</option>
+                                    <option value='http://agrovoc.uniroma2.it/sparql'>AGROVOC: http://agrovoc.uniroma2.it/sparql</option>
+                                    <option value='http://data.allie.dbcls.jp/sparql'>Allie Database in Life Science: http://data.allie.dbcls.jp/sparql</option>
+                                    <option value='http://linguistic.linkeddata.es/sparql/'>Apertium Dictionary: http://linguistic.linkeddata.es/sparql/</option>
+                                    <option value='http://data.archiveshub.ac.uk/sparql'>Archives Hub Linked Data: http://data.archiveshub.ac.uk/sparql</option>
+                                    <option value='http://sparql.jesandco.org:8890/sparql'>Achievement Standards Network (ASN:US): http://sparql.jesandco.org:8890/sparql</option>
+                                    <option value='http://vocabulary.semantic-web.at/PoolParty/sparql/AustrianSkiTeam'>Alpine Ski: http://vocabulary.semantic-web.at/PoolParty/sparql/AustrianSkiTeam</option>
+                                    <option value='https://bnb.data.bl.uk/sparql'>British National Bibliography: https://bnb.data.bl.uk/sparql</option>
+                                    <option value='http://dati.camera.it/sparql'>Bibliography of the Italian Parliament: http://dati.camera.it/sparql</option>
+                                    <option value='https://digitaalerfgoed.poolparty.biz/PoolParty/sparql/term/id/cht'>Cultural Heritage Thesaurus: https://digitaalerfgoed.poolparty.biz/PoolParty/sparql/term/id/cht</option>
+                                    <option value='https://linked.opendata.cz/sparql'>COMSODE project: https://linked.opendata.cz/sparql</option>
+                                    <option value='http://cultura.linkeddata.es/sparql'>CulturaLinkedData: http://cultura.linkeddata.es/sparql</option>
+                                    <option value='https://linked.opendata.cz/sparql'>Czech Open Data: https://linked.opendata.cz/sparql</option>
+                                    <option value='https://data.bnf.fr/sparql'>Bibliothèque nationale de France: https://data.bnf.fr/sparql</option>
+                                    <option value='http://data.hnm.hu/sparql'>Hungarian National Museum Datasets: http://data.hnm.hu/sparql</option>
+                                    <option value='http://data.persee.fr/sparql'>Biblioteca Persée: http://data.persee.fr/sparql</option>
+                                    <option value='http://visualdataweb.infor.uva.es/sparql'>DATATURCYL - LOD for tourists: http://visualdataweb.infor.uva.es/sparql</option>
+                                    <option value='http://datos.bcn.cl/sparql'>Datos Políticos Chile: http://datos.bcn.cl/sparql</option>
+                                    <option value='http://datos.bne.es/sparql'>Spanish National Library: http://datos.bne.es/sparql</option>
+                                    <option value='http://dbkwik.webdatacommons.org/sparql'>Towards Knowledge Graph Creation from Thousands of Wikis: http://dbkwik.webdatacommons.org/sparql</option>
+                                    <option value='http://kaiko.getalp.org/sparql'>Dbnary: http://kaiko.getalp.org/sparql</option>
+                                    <option value='http://rdf.disgenet.org/sparql/'>Genetics DB: http://rdf.disgenet.org/sparql/</option>
+                                    <option value='http://harvard.eagle-i.net/sparqler/sparql'>eagle-i @ Harvard University: http://harvard.eagle-i.net/sparqler/sparql</option>
+                                    <option value='https://cr.eionet.europa.eu/sparql'>EEA Reporting Obligations Database: https://cr.eionet.europa.eu/sparql</option>
+                                    <option value='http://webenemasuno.linkeddata.es/sparql'>El Viajero's tourism dataset: http://webenemasuno.linkeddata.es/sparql</option>
+                                    <option value='http://linkeddata.ge.imati.cnr.it:8890/sparql'>Environmental Applications Reference Thesaurus: http://linkeddata.ge.imati.cnr.it:8890/sparql</option>
+                                    <option value='http://eventmedia.eurecom.fr/sparql'>EventMedia: http://eventmedia.eurecom.fr/sparql</option>
+                                    <option value='http://etna.istc.cnr.it/framester2/sparql'>Framester: http://etna.istc.cnr.it/framester2/sparql</option>
+                                    <option value='http://wifo5-03.informatik.uni-mannheim.de/drugbank/sparql'>DrugBank: http://wifo5-03.informatik.uni-mannheim.de/drugbank/sparql</option>
+                                    <option value='https://resource.geolba.ac.at/PoolParty/sparql/GeologicUnit'>Australian Geological units: https://resource.geolba.ac.at/PoolParty/sparql/GeologicUnit</option>
+                                    <option value='https://resource.geolba.ac.at/PoolParty/sparql/GeologicTimeScale'>Australian Geological time scale: https://resource.geolba.ac.at/PoolParty/sparql/GeologicTimeScale</option>
+                                    <option value='https://resource.geolba.ac.at/PoolParty/sparql/lithology'>Australian lithology: https://resource.geolba.ac.at/PoolParty/sparql/lithology</option>
+                                    <option value='https://resource.geolba.ac.at/PoolParty/sparql/tectonicunit'>Australian Lithotectonic Unit: https://resource.geolba.ac.at/PoolParty/sparql/tectonicunit</option>
+                                    <option value='http://extbi.lab.aau.dk/sparql/'>Danish agricultural data: http://extbi.lab.aau.dk/sparql/</option>
+                                    <option value='https://sparql.crssnky.xyz/spql/imas/query'>im@sparql: https://sparql.crssnky.xyz/spql/imas/query</option>
+                                    <option value='http://www.influencetracker.com:8890/sparql'>Influence Tracker Dataset: http://www.influencetracker.com:8890/sparql</option>
+                                    <option value='http://dati.isprambiente.it/sparql'>The administrative divisions of Italy: http://dati.isprambiente.it/sparql</option>
+                                    <option value='http://dbtune.org/jamendo/sparql/'>DBTune.org Jamendo RDF Server: http://dbtune.org/jamendo/sparql/</option>
+                                    <option value='http://data.logainm.ie/sparql'>Linked Logainm: http://data.logainm.ie/sparql</option>
+                                    <option value='http://130.149.22.98:8899/sparql/'>Location Linked Crowdsourced Data: http://130.149.22.98:8899/sparql/</option>
+                                    <option value='http://linkedgeodata.org/sparql/'>Linked Geo Data: http://linkedgeodata.org/sparql/</option>
+                                    <option value='http://www.linklion.org:8890/sparql'>LinkLion - A Link Repository for the Web of Data: http://www.linklion.org:8890/sparql</option>
+                                    <option value='http://apps.morelab.deusto.es/labman/sparql'>MORElab: http://apps.morelab.deusto.es/labman/sparql</option>
+                                    <option value='http://vocabulary.semantic-web.at/PoolParty/sparql/OpenData'>Open Data Thesaurus: http://vocabulary.semantic-web.at/PoolParty/sparql/OpenData</option>
+                                    <option value='http://www.openmobilenetwork.org:8890/sparql'>OpenMobileNetwork: http://www.openmobilenetwork.org:8890/sparql</option>
+                                    <option value='http://slod.fiz-karlsruhe.de/sparql'>Stuttgart State Theaters: http://slod.fiz-karlsruhe.de/sparql</option>
+                                    <option value='http://vocabulary.semantic-web.at/PoolParty/sparql/semweb'>Social Semantic Web Thesaurus: http://vocabulary.semantic-web.at/PoolParty/sparql/semweb</option>
+                                    <option value='http://linguistic.linkeddata.es/sparql'>Spanish Linguistic Datasets: http://linguistic.linkeddata.es/sparql</option>
+                                    <option value='http://lod.sztaki.hu/sparql'>National Digital Data Archive of Hungary: http://lod.sztaki.hu/sparql</option>
+                                    <option value='http://190.15.141.102:8890/sparql'>Universidad de Cuenca: http://190.15.141.102:8890/sparql</option>
+                                    <option value='http://webisa.webdatacommons.org/sparql'>WebIsALOD: http://webisa.webdatacommons.org/sparql</option>
+                                </datalist>
                             </div>
-                            <div id="editEndpoint" class="col-sm-1 col-1 form-group panel-collapse collapse in">
+                            <!--<div id="editEndpoint" class="col-sm-1 col-1 form-group panel-collapse collapse in">
                                 <span class="glyphicon" onclick="editEndpoint(); return false" style="cursor:pointer;">&#x270f;</span>
-                            </div>
+                            </div>-->
                         </div>
                         <div id="collapseSubmits" class="row form-group panel-collapse collapse in show col-sm-12 col-lg-12">
                             <div class="col-sm-4 form-group">
@@ -129,7 +205,7 @@
                                         <option value="triples">Triples (JSON)</option>
                                     </select>
                                 </div>
-                                 <div class="col-sm-1 form-group">
+                                <!--<div class="col-sm-1 form-group">
                                     <label>Limit</label>
                                 </div>
                                 <div class="col-sm-2 form-group">
@@ -140,7 +216,7 @@
                                 </div>
                                 <div class="col-sm-2 form-group">
                                     <input class="form-control" id="offset">
-                                </div>
+                                </div>-->
                             </div>
                             <div id="collapseSend" class="row form-group panel-collapse collapse in col-sm-12 col-lg-12">
                                 <input id="sendQuery" type="button" class="btn btn-primary btn-block" onclick="send();" value="Send" />
@@ -202,7 +278,7 @@
                 </div>
             </div>
 
-            <div class="col-lg-3 col-lg-offset-1">
+            <!--<div class="col-lg-3 col-lg-offset-1">
                 <h3>Examples</h3>
 
                 <h4>
@@ -220,7 +296,7 @@
                 <h4>
                     ...
                 </h4>
-            </div>
+            </div>-->
 
 
         </div>
