@@ -715,7 +715,9 @@ async function getAsyncFinalResults(sparql, counter){
 			    }
 
 		  		if(typeof jsonPaths !== 'undefined' && jsonPaths && jsonPaths.length > 0){
-		  			pathsResults.push(jsonPaths[0])
+		  			for(var pathIndex = 0; pathIndex < jsonPaths.length; pathIndex++){
+		  				pathsResults.push(jsonPaths[pathIndex])
+		  			}
 					wait[counter] = false
 	    		} else {
 	    			end = true
@@ -1436,6 +1438,7 @@ function returnResults(results, sparql){
 				} catch (e){
 					console.log(e)
 				}
+		        
 		        jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
 				    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
 				}).slice(offsetNumber, offsetNumber + limitNumber)
