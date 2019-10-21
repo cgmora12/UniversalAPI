@@ -17,7 +17,7 @@ var path
 var properties
 var format
 var limit
-var offset
+var offset = 0
 var pathProperties = []
 var fieldsArray = []
 var maxResultsForClasses
@@ -376,8 +376,8 @@ async function getEndpointClassesWithoutProperties(){
 // UAPI guided function
 async function getAsyncEndpointClassesWithoutProperties(counter){
 	//console.log("getAsyncResults" + i);
-	var offset = (maxResultsForClasses * counter)
-	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offset) 
+	var offsetAsync = (maxResultsForClasses * counter)
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync) 
 			+ '&timeout=2000'
 	
 	if(defaultFormatJson){
@@ -618,6 +618,12 @@ function generateSparql(pathToResource, properties){
 
 
 	maxResultsForClasses = 1000
+	//console.log("Limit: " + limit)
+	/*if(limit && limit.length > 0 && limit > 0){
+		if(limit < maxResultsForClasses){
+			maxResultsForClasses = limit
+		}
+	}*/
 	end = false;
 	pathsResults = []
 	wait = new Array();
@@ -643,8 +649,17 @@ function generateSparql(pathToResource, properties){
 			  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
 				}
 			}
-        }  else {        	
-	        getAsyncFinalResults(sparql, count)
+        }  else {  
+
+			/*if(limit && limit.length > 0 && limit > 0){
+	        	if(maxResultsForClasses * count > limit){
+	        		end = true;
+	        	} else {
+		        	getAsyncFinalResults(sparql, count)
+	        	}
+			}*/// else {
+	        	getAsyncFinalResults(sparql, count)
+        	//}    	
 	        count++; 
         }
     }, 100); 
@@ -655,8 +670,8 @@ function generateSparql(pathToResource, properties){
 async function getAsyncFinalResults(sparql, counter){
 	try{
 		wait[counter] = true
-		var offset = (maxResultsForClasses * counter)
-		var httpGet = endpoint + '?query=' + escape(sparql + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offset)  
+		var offsetAsync = (maxResultsForClasses * counter)// + offset
+		var httpGet = endpoint + '?query=' + escape(sparql + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync)  
 					+ '&timeout=5000'
 		if(defaultFormatJson){
 			httpGet += '&format=application%2Fsparql-results%2Bjson' 
@@ -785,8 +800,8 @@ async function getAsyncEndpointClasses(counter){
 	    }
 	    FILTER (!BOUND(?otherSub ))
 	}*/
-	var offset = (maxResultsForClasses * counter)
-	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offset) 
+	var offsetAsync = (maxResultsForClasses * counter)
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync) 
 			+ '&timeout=2000'
 	if(defaultFormatJson){
 		httpGet += '&format=application%2Fsparql-results%2Bjson' 
@@ -1421,7 +1436,9 @@ function returnResults(results, sparql){
 				} catch (e){
 					console.log(e)
 				}
-		        jsonResultsParsed = jsonResultsParsed.slice(offsetNumber, offsetNumber + limitNumber)
+		        jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
+				    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
+				}).slice(offsetNumber, offsetNumber + limitNumber)
 				jsonFinalResults.results = jsonResultsParsed
 				//var returnResults = JSON.stringify(jsonFinalResults)
 				//finalResponse({results: jsonFinalResults, query: sparql})
@@ -1588,7 +1605,9 @@ function returnResults(results, sparql){
 					console.log(e)
 				}
 
-		        jsonResultsParsed = jsonResultsParsed.slice(offsetNumber, offsetNumber + limitNumber)
+		        jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
+				    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
+				}).slice(offsetNumber, offsetNumber + limitNumber)
 				jsonFinalResults.results = jsonResultsParsed
 				//var returnResults = JSON.stringify(jsonFinalResults)
 			}
