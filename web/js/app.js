@@ -27,6 +27,7 @@ var jsonResults
 
 function basicQuery(){
 
+	$('#collapsePath').collapse("hide");
 	$('#collapseSendSparql').collapse("hide");
 	$('#collapseSparqlQuery').collapse("hide");
 	$('#collapseCompleteQuery').collapse("hide");
@@ -97,6 +98,7 @@ function basicQueryFill(){
 	$('#collapseSendSparql').collapse("hide");
 	//$("#editEndpoint").collapse("show");
 	$('#collapseResults').collapse("hide");
+	$('#collapsePath').collapse("show");
 
 	// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonResults.paths
 	var options = jsonResults//Object.keys(jsonResults.paths["/"].get.parameters[1].examples);
@@ -291,6 +293,11 @@ function documentationReady(){
         elem.click();        
         document.body.removeChild(elem);
     }
+
+    $('.jsonpanel').jsonpanel({
+	  data: jsonResults
+	});
+	document.getElementById('textareaResult').style.display = "none";
 }
 
 function documentationNotReady(errorObject){
@@ -415,6 +422,11 @@ function send(){
 						}
 						else {
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
+
+						    $('.jsonpanel').jsonpanel({
+							  data: data.results.results
+							});
+							document.getElementById('textareaResult').style.display = "none";
 						}
 					}
 					else {
