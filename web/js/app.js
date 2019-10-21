@@ -217,6 +217,7 @@ function documentation(){
 	$('#collapseCompleteQuery').collapse("hide");
 	$('#collapseFormat').collapse("hide");
 	$('#collapseResults').collapse("hide");
+	$('#collapsePath').collapse("hide");
 
 	//$('#endpoint').prop('disabled', true);
 	$('#documentation').prop('disabled', true);
@@ -243,7 +244,16 @@ function documentation(){
 				if(data.results || data.error){
 					if(data.results){
 						jsonResults = data.results;
-						$('#query').val(data.sparql);
+						/*if(data.sparql){
+							$('#query').val(data.sparql);
+						} else {
+							$('#query').val("");
+						}*/
+						if(data.query){
+							$('#query').val(data.query);
+						} else {
+							$('#query').val("");
+						}
 						$('#apiquery').val("https://wake.dlsi.ua.es" + url);
 						documentationReady()
 					}
@@ -294,6 +304,7 @@ function documentationReady(){
         document.body.removeChild(elem);
     }
 
+	$('.jsonpanel').html("");
     $('.jsonpanel').jsonpanel({
 	  data: jsonResults
 	});
@@ -423,6 +434,7 @@ function send(){
 						else {
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
 
+							$('.jsonpanel').html("");
 						    $('.jsonpanel').jsonpanel({
 							  data: data.results.results
 							});

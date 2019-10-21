@@ -25,6 +25,7 @@ var pathsResults = []
 var end = false;
 var wait, waitPaths, waitProperties
 var request
+var defaultFormatJson = true
 
 module.exports = function(app, db) {
 	// Web in HTML
@@ -48,9 +49,18 @@ module.exports = function(app, db) {
 
 			if(typeof endpoint !== 'undefined' && endpoint){
 				console.log('Get endpoint documentation')
-				//get documentation
-				initDoc()
-				getEndpointClasses()
+				defaultFormatJson = true
+				checkEndpoint(function(returnValue) {
+				  	if(returnValue){
+						//get documentation
+						//console.log("get documentation")
+						initDoc()
+						getEndpointClasses()
+					} else {
+						//console.log("checkEndpoint false")
+						finalResponse({error: "API to LOD -> Error querying the endpoint"})
+					}
+				});
 			}
 			else {
 				finalResponse({error: 'API to LOD -> Missing parameter "endpoint"'})
@@ -102,7 +112,15 @@ module.exports = function(app, db) {
 						timeout = ''
 					}
 
-					sparqlQuery(sparql, sparqlGraph, debug, timeout)
+					defaultFormatJson = true
+					checkEndpoint(function(returnValue) {
+					  	if(returnValue){
+					  		sparqlQuery(sparql, sparqlGraph, debug, timeout)
+					  	} else {
+							//console.log("checkEndpoint false")
+							finalResponse({error: "API to LOD -> Error querying the endpoint"})
+						}
+				  	});
 				}
 				else {
 					finalResponse({error: 'API to LOD -> Missing query in SPARQL'})
@@ -137,6 +155,8 @@ module.exports = function(app, db) {
 			format = req.query.format
 			var debug = req.query.debug
 			var timeout = req.query.timeout
+			
+			defaultFormatJson = true
 
 			if(typeof endpoint !== 'undefined' && endpoint){
 				
@@ -144,21 +164,56 @@ module.exports = function(app, db) {
 
 					if(typeof step !== 'undefined' && step){
 						if(step == '1'){
-							getEndpointClassesWithoutProperties()
+							checkEndpoint(function(returnValue) {
+							  	if(returnValue){
+									getEndpointClassesWithoutProperties()
+								} else {
+									//console.log("checkEndpoint false")
+									finalResponse({error: "API to LOD -> Error querying the endpoint"})
+								}
+							});
 						} else if(step == '2' && typeof path !== 'undefined' && path){
-							getEndpointPropertiesFromClass(path)
+							checkEndpoint(function(returnValue) {
+							  	if(returnValue){
+									getEndpointPropertiesFromClass(path)
+								} else {
+									//console.log("checkEndpoint false")
+									finalResponse({error: "API to LOD -> Error querying the endpoint"})
+								}
+							});
 						} else {
-							getEndpointClassesWithoutProperties()
+							checkEndpoint(function(returnValue) {
+							  	if(returnValue){
+									getEndpointClassesWithoutProperties()
+								} else {
+									//console.log("checkEndpoint false")
+									finalResponse({error: "API to LOD -> Error querying the endpoint"})
+								}
+							});
 						}
 					} else {
-						getEndpointClassesWithoutProperties()
+							checkEndpoint(function(returnValue) {
+							  	if(returnValue){
+									getEndpointClassesWithoutProperties()
+								} else {
+									//console.log("checkEndpoint false")
+									finalResponse({error: "API to LOD -> Error querying the endpoint"})
+								}
+							});
 					} 
 				} else if(typeof path !== 'undefined' && path) {
 					//if(path.charAt(0) == '/'){
 						console.log('path: ' + path)
 						// autogenerate sparql
 						// generate sparql query with resource and properties
-						generateSparql(path, properties)
+						checkEndpoint(function(returnValue) {
+						  	if(returnValue){
+								generateSparql(path, properties)
+							} else {
+								//console.log("checkEndpoint false")
+								finalResponse({error: "API to LOD -> Error querying the endpoint"})
+							}
+						});
 				}
 				else {
 					finalResponse({error: 'API to LOD -> Missing resource to perform the query (parameter "path")'})
@@ -174,6 +229,82 @@ module.exports = function(app, db) {
 		}
 	});
 };
+
+function checkEndpoint(callback){
+	console.log("checkEndpoint")
+	var httpGet = endpoint + '?query=' + escape('SELECT ?s WHERE{ ?s ?p ?o . } LIMIT 1') + '&timeout=10000'
+
+	if(defaultFormatJson){
+		httpGet += '&format=application%2Fsparql-results%2Bjson' 
+	}
+
+	try{
+		if(endpoint.includes("https")){
+			request = https
+		} else {
+			request = http
+		}
+		var req = request.get(httpGet, (resp) => {
+		  let data = '';
+
+		  // A chunk of data has been recieved.
+		  resp.on('data', (chunk) => {
+		    data += chunk;
+		  });
+
+		  // The whole response has been received. Print out the result.
+		  resp.on('end', () => {
+		  	//console.log("data: " + data);
+		  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
+
+			// Return data to users formatted in JSON
+			//
+			//console.log("data: " + data);
+			var results = data
+			try {
+				var jsonResults
+			    if(defaultFormatJson){
+					results = JSON.parse(data)
+					jsonResults = results.results.bindings
+			    } else {
+					results = JSON.parse(parserXml2json.toJson(data))
+		  			jsonResults = results["sparql"].results.result
+			    }
+
+		  		if(typeof jsonResults !== 'undefined' && jsonResults){
+					//console.log("return true")
+					//console.log(jsonResults)
+					callback(true)
+	    		} else {
+					//console.log("return false")
+					callback(false)
+	    		}
+		    	
+	    	} catch (e){
+				if(defaultFormatJson){
+					//console.log("return false checkEndpoint again with default format")
+					defaultFormatJson = false;
+					checkEndpoint(callback);
+				} else {
+					//console.log("return false catch")
+					callback(false)
+				}
+			}
+		  });
+		});
+
+		req.on('error', function(e) {
+			console.log('ERROR: ' + e)
+			callback(false)
+		});
+
+		req.end()
+	} catch (e){
+		console.log(e)
+		callback(false)
+	}
+	
+}
 
 // UAPI guided function
 async function getEndpointClassesWithoutProperties(){
@@ -217,7 +348,7 @@ async function getEndpointClassesWithoutProperties(){
 	        getAsyncEndpointClassesWithoutProperties(count)
 	        count++; 
         }
-    }, 1000); 
+    }, 100); 
 
 	/*for(var i = 0; !end; i++ && setTimeout(function() {console.log('Wait')}, 3000)){
 		//console.log("before getAsyncResults");
@@ -247,8 +378,11 @@ async function getAsyncEndpointClassesWithoutProperties(counter){
 	//console.log("getAsyncResults" + i);
 	var offset = (maxResultsForClasses * counter)
 	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offset) 
-			//+ '&format=application%2Fsparql-results%2Bjson' 
 			+ '&timeout=2000'
+	
+	if(defaultFormatJson){
+		httpGet += '&format=application%2Fsparql-results%2Bjson' 
+	}
 	//console.log(httpGet);
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -280,15 +414,26 @@ async function getAsyncEndpointClassesWithoutProperties(counter){
 			//console.log("data: " + data);
 			var results = data
 			try {
-			    results = JSON.parse(parserXml2json.toJson(data))
-		  		var jsonPaths = results["sparql"].results.result
-		  		if(typeof jsonPaths !== 'undefined' && jsonPaths){
+				var jsonPaths
+			    if(defaultFormatJson){
+					results = JSON.parse(data)
+					jsonPaths = results.results.bindings
+			    } else {
+				    results = JSON.parse(parserXml2json.toJson(data))
+			  		jsonPaths = results["sparql"].results.result
+			    }
+		  		if(typeof jsonPaths !== 'undefined' && jsonPaths && jsonPaths.length > 0){
 					//console.log(JSON.stringify(jsonPaths));
 				  	var i;
 				  	for(i = 0; i < jsonPaths.length; i++)
 			        {
 			            var jsonObject1 = jsonPaths[i];
-			            var value = jsonObject1.binding.uri;
+			            var value 
+			            if(defaultFormatJson){
+			            	value = jsonObject1.class["value"]
+			            } else {
+			            	value = jsonObject1.binding.uri;
+			            }
 						//console.log(value)
 						//pathsResults.push(value)
 						if(typeof value !== 'undefined' && value && value !== ""){
@@ -324,6 +469,8 @@ async function getAsyncEndpointClassesWithoutProperties(counter){
 		  wait[counter] = false
 		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
+		
+		req.end()
 	} catch (e){
 		console.log(e)
 		end = true
@@ -337,8 +484,10 @@ function getEndpointPropertiesFromClass(pathValue){
 	try{
 		sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
 		var httpGet = endpoint + '?query=' + escape(sparql) 
-					//+ '&format=application%2Fsparql-results%2Bjson' 
 					+ '&timeout=500'
+		if(defaultFormatJson){
+			httpGet += '&format=application%2Fsparql-results%2Bjson' 
+		}
 		//console.log(httpGet)
 
 		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -369,9 +518,14 @@ function getEndpointPropertiesFromClass(pathValue){
 			var properties = []
 			var results = data
 			try {
-			    results = JSON.parse(parserXml2json.toJson(data))
-			    //console.log(JSON.stringify(results))
-				var jsonProperties = results["sparql"].results.result
+				var jsonProperties
+			    if(defaultFormatJson){
+					results = JSON.parse(data)
+					jsonProperties = results.results.bindings
+			    } else {
+				    results = JSON.parse(parserXml2json.toJson(data))
+			  		jsonProperties = results["sparql"].results.result
+			    }
 
 				try {
 				  	var i;
@@ -379,7 +533,13 @@ function getEndpointPropertiesFromClass(pathValue){
 				  	for(i=0; i < jsonProperties.length; i++)
 			        {
 			            var jsonObject1 = jsonProperties[i];
-			            var value = jsonObject1.binding.uri;
+			            var value
+			            if(defaultFormatJson){
+			            	value = jsonObject1.property["value"];
+			            } else{
+			            	value = jsonObject1.binding.uri;
+			            }
+
 						//console.log(value)
 						properties.push({id: value, name: pathShortener(value), schema : { type : "string" }, in: "query"})
 			        }
@@ -407,6 +567,8 @@ function getEndpointPropertiesFromClass(pathValue){
 		  console.log('ERROR: ' + e.message);
 		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
+
+		req.end()
 	} catch (e) {
 	    console.log(e)
   		finalResponse({error: "API to LOD -> Error querying the endpoint"})
@@ -438,7 +600,8 @@ function generateSparql(pathToResource, properties){
 
 	sparql += ' } '
 
-	//TODO: apply limit and offset correctly to improve performance
+	//TODO: apply limit and offset correctly to improve performance 
+	// and call async function passing the generated query
 	/*try{
 		if(limit){
 			sparql += ' LIMIT ' + limit + ' '
@@ -453,11 +616,52 @@ function generateSparql(pathToResource, properties){
 	console.log("sparql query generated: " + sparql)
 
 
+
+	maxResultsForClasses = 1000
+	end = false;
+	pathsResults = []
+	wait = new Array();
+
+	var count = 0; 
+	var intervalObject = setInterval(function () {
+        //console.log(count, 'seconds passed'); 
+        if (end) { 
+        	var waitBool = false
+        	for(var waitIndex = 0; waitIndex < wait.length; waitIndex++){
+        		if(wait[waitIndex] == true){
+        			waitBool = true
+        		}
+        	}
+        	//console.log(JSON.stringify(wait))
+        	if(!waitBool){
+	            console.log('Return results');
+	        	clearInterval(intervalObject);  
+				//finishedAsync = _.after(count, finalResponse, {results: pathsResults});
+				if(pathsResults && pathsResults.length > 0){
+					returnResults(pathsResults, sparql)
+				} else {
+			  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+				}
+			}
+        }  else {        	
+	        getAsyncFinalResults(sparql, count)
+	        count++; 
+        }
+    }, 100); 
+
+	
+}
+
+async function getAsyncFinalResults(sparql, counter){
 	try{
-		var httpGet = endpoint + '?query=' + escape(sparql)  
-					//+ '&format=application%2Fsparql-results%2Bjson' 
+		wait[counter] = true
+		var offset = (maxResultsForClasses * counter)
+		var httpGet = endpoint + '?query=' + escape(sparql + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offset)  
 					+ '&timeout=5000'
-		console.log(httpGet)
+		if(defaultFormatJson){
+			httpGet += '&format=application%2Fsparql-results%2Bjson' 
+		}
+		//console.log(httpGet)
 
 		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
 		//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
@@ -485,25 +689,40 @@ function generateSparql(pathToResource, properties){
 			// Return data to users formatted in JSON
 			//
 			var results = data
-			try {
-			    results = JSON.parse(parserXml2json.toJson(data))
-			} catch (e) {
-			    if (e instanceof SyntaxError) {
-			        console.log(e)
+			try {				
+				var jsonPaths
+			    if(defaultFormatJson){
+					results = JSON.parse(data)
+					jsonPaths = results.results.bindings
+			    } else {
+				    results = JSON.parse(parserXml2json.toJson(data))
+			  		jsonPaths = results["sparql"].results.result
 			    }
-			}
 
-			returnResults(results, sparql)
+		  		if(typeof jsonPaths !== 'undefined' && jsonPaths && jsonPaths.length > 0){
+		  			pathsResults.push(jsonPaths[0])
+					wait[counter] = false
+	    		} else {
+	    			end = true
+					wait[counter] = false
+	    		}
+			} catch (e) {
+				wait[counter] = false
+				end = true;
+			    console.log(e)
+			}
 		  	
 		  });
 
 		}).on("error", (err) => {
-		  console.log("Error: " + err.message);
-		  finalResponse({error: 'API to LOD -> Error querying the endpoint'})
+			wait[counter] = false
+			end = true;
+		  	console.log("Error: " + err.message);
 		});
 	} catch (e) {
-	  console.log(e)
-	  finalResponse({error: 'API to LOD -> Error querying the endpoint'})
+	 	console.log(e)
+		wait[counter] = false
+		end = true;
 	}
 }
 
@@ -550,7 +769,7 @@ function getEndpointClasses(){
 	        getAsyncEndpointClasses(count)
 	        count++; 
         }
-    }, 1000); 
+    }, 100); 
 	
 }
 
@@ -568,8 +787,10 @@ async function getAsyncEndpointClasses(counter){
 	}*/
 	var offset = (maxResultsForClasses * counter)
 	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offset) 
-			//+ '&format=application%2Fsparql-results%2Bjson' 
 			+ '&timeout=2000'
+	if(defaultFormatJson){
+		httpGet += '&format=application%2Fsparql-results%2Bjson' 
+	}
 	//console.log(httpGet)
 
 	// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -600,9 +821,16 @@ async function getAsyncEndpointClasses(counter){
 			//
 			var results = data
 			try {
-			    results = JSON.parse(parserXml2json.toJson(data))
-		  		var jsonPaths = results["sparql"].results.result
-		  		if(typeof jsonPaths !== 'undefined' && jsonPaths){
+				var jsonPaths
+			    if(defaultFormatJson){
+					results = JSON.parse(data)
+					jsonPaths = results.results.bindings
+			    } else {
+				    results = JSON.parse(parserXml2json.toJson(data))
+			  		jsonPaths = results["sparql"].results.result
+			    }
+
+		  		if(typeof jsonPaths !== 'undefined' && jsonPaths && jsonPaths.length > 0){
 					//console.log(JSON.stringify(jsonPaths));
 				  	var i;
 				  	for(i = 0; i < jsonPaths.length; i++)
@@ -610,7 +838,14 @@ async function getAsyncEndpointClasses(counter){
 			        	try{
 				        	waitPaths[i] = true
 				            var jsonObject1 = jsonPaths[i];
-				            var value = jsonObject1.binding.uri;
+				            var value
+
+				            if(defaultFormatJson){
+				            	value = jsonObject1.class["value"]
+				            } else {
+				            	value = jsonObject1.binding.uri;
+				            }
+
 							//console.log(value)
 							//pathsResults.push(value)
 							if(typeof value !== 'undefined' && value && value !== ""){
@@ -636,6 +871,7 @@ async function getAsyncEndpointClasses(counter){
 		    	
 	    	} catch (e){
 				console.log(e)
+				console.log("results: " + JSON.stringify(results))
 		  		end = true
 				wait[counter] = false
 			}
@@ -648,6 +884,8 @@ async function getAsyncEndpointClasses(counter){
 		  wait[counter] = false
 		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
+		
+		req.end()
 	} catch (e){
 		console.log(e)
 		end = true
@@ -661,8 +899,10 @@ async function getClassProperties(pathValue, counter){
 	try{
 		sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
 		var httpGet = endpoint + '?query=' + escape(sparql)
-					// + '&format=application%2Fsparql-results%2Bjson' 
 					+ '&timeout=500'
+		if(defaultFormatJson){
+			httpGet += '&format=application%2Fsparql-results%2Bjson' 
+		}
 		//console.log(httpGet)
 
 		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -692,15 +932,26 @@ async function getClassProperties(pathValue, counter){
 			var properties = []
 			var results = data
 			try {
-			    results = JSON.parse(parserXml2json.toJson(data))
-		  		var jsonProperties = results["sparql"].results.result
+				var jsonProperties
+			    if(defaultFormatJson){
+					results = JSON.parse(data)
+					jsonProperties = results.results.bindings
+			    } else {
+				    results = JSON.parse(parserXml2json.toJson(data))
+			  		jsonProperties = results["sparql"].results.result
+			    }
 
 				try {
 				  	var i;
 				  	for(i = 0; i < jsonProperties.length; i++)
 			        {
 			            var jsonObject1 = jsonProperties[i];
-			            var value = jsonObject1.binding.uri;
+			            var value
+			            if(defaultFormatJson){
+			            	value = jsonObject1.property["value"];
+			            } else{
+			            	value = jsonObject1.binding.uri;
+			            }
 						//console.log(value)
 
 						properties.push({name: value, description: pathShortener(value), schema : { type : "string" }, in: "query"})
@@ -728,6 +979,8 @@ async function getClassProperties(pathValue, counter){
 		  waitPaths[counter] = false
 		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
+		
+		req.end()
 	} catch (e) {
 	    console.log(e)
 		waitPaths[counter] = false
@@ -743,8 +996,10 @@ async function getAsyncPropertyExampleValue(pathValue, property, counter){
 		// sparql = SELECT DISTINCT ?o WHERE { ?s a <http://geo.linkeddata.es/ontology/Provincia>; <http://www.w3.org/2000/01/rdf-schema#label> ?o . } LIMIT 1
 		sparql = 'SELECT DISTINCT ?o WHERE { ?s a <' + pathValue + '>; <' + property + '> ?o . }' + ' LIMIT 1'
 		var httpGet = endpoint + '?query=' + escape(sparql)
-					// + '&format=application%2Fsparql-results%2Bjson' 
 					+ '&timeout=200'
+		if(defaultFormatJson){
+			httpGet += '&format=application%2Fsparql-results%2Bjson' 
+		}
 		//console.log(httpGet)
 
 		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
@@ -773,20 +1028,33 @@ async function getAsyncPropertyExampleValue(pathValue, property, counter){
 			//
 			var results = data
 			try {
-			    results = JSON.parse(parserXml2json.toJson(data))
-		  		var jsonProperty = results["sparql"].results.result
+		  		var jsonProperty
+			    if(defaultFormatJson){
+					results = JSON.parse(data)
+					jsonProperty = results.results.bindings
+			    } else {
+				    results = JSON.parse(parserXml2json.toJson(data))
+			  		jsonProperty = results["sparql"].results.result
+			    }
 
 		  		//console.log(JSON.stringify(results))
 		  		var exampleValue = ""
-		  		if(typeof jsonProperty.binding.uri == "undefined"){
-		  			if(typeof jsonProperty.binding.literal == "undefined"){
-			  			exampleValue = escape(jsonProperty.binding.bnode)
-		  			} else {
-		  				exampleValue = escape(jsonProperty.binding.literal)
-		  			}
-		  		} else {
-		  			exampleValue = escape(jsonProperty.binding.uri)
-		  		}
+	            if(defaultFormatJson){
+	            	//console.log("jsonProperty: " + JSON.stringify(jsonProperty))
+	            	exampleValue = escape(jsonProperty[0].o["value"]);
+	            } else{
+	            	if(typeof jsonProperty.binding.uri == "undefined"){
+			  			if(typeof jsonProperty.binding.literal == "undefined"){
+				  			exampleValue = escape(jsonProperty.binding.bnode)
+			  			} else {
+			  				exampleValue = escape(jsonProperty.binding.literal)
+			  			}
+			  		} else {
+			  			exampleValue = escape(jsonProperty.binding.uri)
+			  		}
+	            }
+		  		
+		  		//console.log("exampleValue: " + exampleValue)
 		  		documentation.components.schemas[pathValue].properties[property] = 
 	    			JSON.parse("{\"type\" : \"string\", \"example\" : \"" + exampleValue + "\" }");
 
@@ -806,6 +1074,8 @@ async function getAsyncPropertyExampleValue(pathValue, property, counter){
 		  waitPaths[counter] = false
 		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
+		
+		req.end()
 	} catch (e) {
 	    console.log(e)
 		waitPaths[counter] = false
@@ -1018,6 +1288,7 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 
 function returnResults(results, sparql){
 	console.log("format: " + format)
+	//console.log("results: " + JSON.stringify(results).substring(0, 1000))
 	try{
 		if(format === "application%2Fsparql-results%2Bjson" || format === "triples"){
 
@@ -1034,174 +1305,293 @@ function returnResults(results, sparql){
 				console.log(e)
 			}
 		  	
-	        results["sparql"].results.result = results["sparql"].results.result.slice(offsetNumber, offsetNumber + limitNumber)
+		  	if(defaultFormatJson){
+		  		results.results.bindings = results.results.bindings.slice(offsetNumber, offsetNumber + limitNumber)
+		  	} else {
+	        	results["sparql"].results.result = results["sparql"].results.result.slice(offsetNumber, offsetNumber + limitNumber)
+		  	}
 		  	finalResponse({results: results, query: sparql})
 		}
 		else {
-			//console.log(JSON.stringify(results).substring(0, 2000))
-			var jsonResults = results["sparql"].results.result
-		  	var jsonResultsParsed = []
-		  	var jsonFinalResults = {results: []}
-		  	var objectNameAuxArray = []
-		  	var jsonResultsParsedAux = []
-		  	var objectNameAux
-		  	var objectName
-		  	var yaEncontrado = false
-		  	var i
-		  	for(i = 0; i < jsonResults.length; i++)
-	        {
-	        	// Uncomment for debugging ONLY
-	        	/*console.log("Check results: ")
-	        	console.log(jsonResultsParsed)
-	        	var reloj
-	        	for(reloj = 0; reloj < 1000000000; reloj++){
-	        		reloj = reloj + 1
-	        	}*/
+			var jsonFinalResults = {results: []}
 
-	        	var object, predicate, subject			    
-			    for(var bindingIndex = 0; bindingIndex < jsonResults[i].binding.length; bindingIndex++){
-					if(jsonResults[i].binding[bindingIndex].name === "subject"){
-						if(typeof jsonResults[i].binding[bindingIndex].uri !== "undefined"){
-			    			subject = jsonResults[i].binding[bindingIndex].uri
-			    		} else {
-			    			if(typeof jsonResults[i].binding[bindingIndex].literal !== "undefined"){
-				    			subject = jsonResults[i].binding[bindingIndex].literal
-				    		} else {
-				    			subject = jsonResults[i].binding[bindingIndex].bnode
-				    		}
-			    		}
-			    	}
-			    	if(jsonResults[i].binding[bindingIndex].name === "predicate"){
-						if(typeof jsonResults[i].binding[bindingIndex].uri !== "undefined"){
-			    			predicate = jsonResults[i].binding[bindingIndex].uri
-			    		} else {
-			    			if(typeof jsonResults[i].binding[bindingIndex].literal !== "undefined"){
-				    			predicate = jsonResults[i].binding[bindingIndex].literal
-				    		} else {
-				    			predicate = jsonResults[i].binding[bindingIndex].bnode
-				    		}
-			    		}
-			    	}
-			    	if(jsonResults[i].binding[bindingIndex].name === "object"){
-						if(typeof jsonResults[i].binding[bindingIndex].uri !== "undefined"){
-			    			object = jsonResults[i].binding[bindingIndex].uri
-			    		} else {
-			    			if(typeof jsonResults[i].binding[bindingIndex].literal !== "undefined"){
-				    			object = jsonResults[i].binding[bindingIndex].literal
-				    		} else {
-				    			object = jsonResults[i].binding[bindingIndex].bnode
-				    		}
-			    		}
-			    	}
-			    }
-			    //console.log("subject " + subject + " object " + object + " predicate " + predicate)
-			    objectName = subject
-
-	        	//console.log("Check last object name from results: " + JSON.stringify(lastAux))
-	        	var last = jsonResultsParsedAux[jsonResultsParsedAux.length-1]
-	        	if(objectName !== last){
-	        		// Search for the same JSON Object processed before (but not last one)
-	        		var j
-		        	for(j=0; j < objectNameAuxArray.length; j++){
-		        		//console.log(JSON.stringify(Object.keys(objectNameAuxArray[j])[0]))
-						if(objectName === Object.keys(objectNameAuxArray[j])[0]){
-			        		//console.log("Same object")
-		        			yaEncontrado = true
-			        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] // search for correct index
-				        	var propertyName = predicate
-				        	var propertyValue = object
-				        	 // avoid deleting existing properties with same key		
-				        	if(jsonObject[objectName][propertyName] !== undefined ){
-			        			if(jsonObject[objectName][propertyName] != propertyValue){
-					        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
-									   var objectToArrayAux = jsonObject[objectName][propertyName]
-									   jsonObject[objectName][propertyName] = []
-
-									}
-										
-									jsonObject[objectName][propertyName].push(propertyValue)	
-								}			
-				        	} else {
-								jsonObject[objectName][propertyName] = propertyValue
+			if(defaultFormatJson){
+				var jsonResults = results
+			  	var jsonResultsParsed = []
+			  	var objectNameAuxArray = []
+			  	var jsonResultsParsedAux = []
+			  	var objectNameAux
+			  	var objectName
+			  	var yaEncontrado = false
+			  	var i
+			  	for(i = 0; i < jsonResults.length; i++)
+		        {
+		        	// Uncomment for debugging ONLY
+		        	/*console.log("Check results: ")
+		        	console.log(jsonResultsParsed)
+		        	var reloj
+		        	for(reloj = 0; reloj < 1000000000; reloj++){
+		        		reloj = reloj + 1
+		        	}*/
+				    objectName = pathShortener(jsonResults[i].subject.value)
+		        	//console.log("Check last object name from results: " + JSON.stringify(lastAux))
+		        	var last = jsonResultsParsedAux[jsonResultsParsedAux.length-1]
+		        	if(objectName !== last){
+		        		// Search for the same JSON Object processed before (but not last one)
+		        		var j
+			        	for(j=0; j < objectNameAuxArray.length; j++){
+			        		//console.log(JSON.stringify(Object.keys(objectNameAuxArray[j])[0]))
+							if(objectName === Object.keys(objectNameAuxArray[j])[0]){
+				        		//console.log("Same object")
+			        			yaEncontrado = true
+				        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] // search for correct index
+					        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+					        	var propertyValue = pathShortener(jsonResults[i].object.value)
+					        	 // avoid deleting existing properties with same key		
+					        	if(jsonObject[objectName][propertyName] !== undefined ){
+				        			if(jsonObject[objectName][propertyName] != propertyValue){
+						        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
+										   var objectToArrayAux = jsonObject[objectName][propertyName]
+										   jsonObject[objectName][propertyName] = []
+										}
+											
+										jsonObject[objectName][propertyName].push(propertyValue)	
+									}			
+					        	} else {
+									jsonObject[objectName][propertyName] = propertyValue
+					        	}
+								jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] = jsonObject
 				        	}
-							jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] = jsonObject
 			        	}
+		        	}	
+		        	// If the last object in results is the same that this one, merge properties and values
+		        	else if(objectName === last){
+				        //console.log("Same previous object")
+			        	yaEncontrado = true
+		        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
+			        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+			        	var propertyValue = pathShortener(jsonResults[i].object.value)
+			        			//console.log(objectName)
+				        		//console.log(JSON.stringify(jsonObject)) 
+			        	 // avoid deleting existing properties with same key		
+			        	if(jsonObject[objectName][propertyName] !== undefined ){
+			        		if(jsonObject[objectName][propertyName] != propertyValue){
+				        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
+								   var objectToArrayAux = jsonObject[objectName][propertyName]
+								   jsonObject[objectName][propertyName] = []
+								}
+									
+								jsonObject[objectName][propertyName].push(propertyValue)
+							}			
+			        	} else {
+							jsonObject[objectName][propertyName] = propertyValue
+			        	}
+						jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]] = jsonObject
 		        	}
-	        	}	
-	        	// If the last object in results is the same that this one, merge properties and values
-	        	else if(objectName === last){
-			        //console.log("Same previous object")
-		        	yaEncontrado = true
-
-	        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
-		        	var propertyName = predicate
-		        	var propertyValue = object
-		        			//console.log(objectName)
-			        		//console.log(JSON.stringify(jsonObject)) 
-		        	 // avoid deleting existing properties with same key		
-		        	if(jsonObject[objectName][propertyName] !== undefined ){
-		        		if(jsonObject[objectName][propertyName] != propertyValue){
-			        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
-							   var objectToArrayAux = jsonObject[objectName][propertyName]
-							   jsonObject[objectName][propertyName] = []
-
-							}
-								
-							jsonObject[objectName][propertyName].push(propertyValue)
-						}			
-		        	} else {
-						jsonObject[objectName][propertyName] = propertyValue
+		        	// If this object wasn't processed before, insert it into the results
+		        	if(!yaEncontrado) {
+		        		//console.log("Different object")
+			        	var propertyName = pathShortener(jsonResults[i].predicate.value)
+			        	var propertyValue = pathShortener(jsonResults[i].object.value)
+			            var jsonObject = { }
+			            var jsonObjectProperty = { }
+			            jsonObjectProperty[propertyName] = propertyValue
+			            jsonObject[objectName] = jsonObjectProperty
+						//console.log(value)
+						jsonResultsParsed.push(jsonObject)
+						jsonResultsParsedAux.push(objectName)
+						var objAux = { }
+						objAux[objectName] = jsonResultsParsed.length - 1
+		        		objectNameAuxArray.push(objAux)
 		        	}
-					jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]] = jsonObject
-	        	}
+		        	objectNameAux = pathShortener(jsonResults[i].subject.value)
+		        	yaEncontrado = false
+				        
+				    //console.log(jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]])
+		        }
+		        var limitNumber = jsonResultsParsed.length
+		        var offsetNumber = 0
+		        try{
+				  	if(limit){
+				  		limitNumber = parseInt(limit)
+				  	}
+				  	if(offset) {
+				  		offsetNumber = parseInt(offset)
+				  	}
+				} catch (e){
+					console.log(e)
+				}
+		        jsonResultsParsed = jsonResultsParsed.slice(offsetNumber, offsetNumber + limitNumber)
+				jsonFinalResults.results = jsonResultsParsed
+				//var returnResults = JSON.stringify(jsonFinalResults)
+				//finalResponse({results: jsonFinalResults, query: sparql})
+			  	//finalResponse({results: returnResults, query: sparql})
+			
+			} else {
+				//console.log(JSON.stringify(results).substring(0, 2000))
+				var jsonResults = results
+			  	var jsonResultsParsed = []
+			  	var objectNameAuxArray = []
+			  	var jsonResultsParsedAux = []
+			  	var objectNameAux
+			  	var objectName
+			  	var yaEncontrado = false
+			  	var i
+			  	for(i = 0; i < jsonResults.length; i++)
+		        {
+		        	// Uncomment for debugging ONLY
+		        	/*console.log("Check results: ")
+		        	console.log(jsonResultsParsed)
+		        	var reloj
+		        	for(reloj = 0; reloj < 1000000000; reloj++){
+		        		reloj = reloj + 1
+		        	}*/
 
-	        	// If this object wasn't processed before, insert it into the results
-	        	if(!yaEncontrado) {
-	        		//console.log("Different object")
-		        	var propertyName = predicate
-		        	var propertyValue = object
+		        	var object, predicate, subject			    
+				    for(var bindingIndex = 0; bindingIndex < jsonResults[i].binding.length; bindingIndex++){
+						if(jsonResults[i].binding[bindingIndex].name === "subject"){
+							if(typeof jsonResults[i].binding[bindingIndex].uri !== "undefined"){
+				    			subject = jsonResults[i].binding[bindingIndex].uri
+				    		} else {
+				    			if(typeof jsonResults[i].binding[bindingIndex].literal !== "undefined"){
+					    			subject = jsonResults[i].binding[bindingIndex].literal
+					    		} else {
+					    			subject = jsonResults[i].binding[bindingIndex].bnode
+					    		}
+				    		}
+				    	}
+				    	if(jsonResults[i].binding[bindingIndex].name === "predicate"){
+							if(typeof jsonResults[i].binding[bindingIndex].uri !== "undefined"){
+				    			predicate = jsonResults[i].binding[bindingIndex].uri
+				    		} else {
+				    			if(typeof jsonResults[i].binding[bindingIndex].literal !== "undefined"){
+					    			predicate = jsonResults[i].binding[bindingIndex].literal
+					    		} else {
+					    			predicate = jsonResults[i].binding[bindingIndex].bnode
+					    		}
+				    		}
+				    	}
+				    	if(jsonResults[i].binding[bindingIndex].name === "object"){
+							if(typeof jsonResults[i].binding[bindingIndex].uri !== "undefined"){
+				    			object = jsonResults[i].binding[bindingIndex].uri
+				    		} else {
+				    			if(typeof jsonResults[i].binding[bindingIndex].literal !== "undefined"){
+					    			object = jsonResults[i].binding[bindingIndex].literal
+					    		} else {
+					    			object = jsonResults[i].binding[bindingIndex].bnode
+					    		}
+				    		}
+				    	}
+				    }
+				    //console.log("subject " + subject + " object " + object + " predicate " + predicate)
+				    objectName = subject
 
-		            var jsonObject = { }
-		            var jsonObjectProperty = { }
-		            jsonObjectProperty[propertyName] = propertyValue
-		            jsonObject[objectName] = jsonObjectProperty
+		        	//console.log("Check last object name from results: " + JSON.stringify(lastAux))
+		        	var last = jsonResultsParsedAux[jsonResultsParsedAux.length-1]
+		        	if(objectName !== last){
+		        		// Search for the same JSON Object processed before (but not last one)
+		        		var j
+			        	for(j=0; j < objectNameAuxArray.length; j++){
+			        		//console.log(JSON.stringify(Object.keys(objectNameAuxArray[j])[0]))
+							if(objectName === Object.keys(objectNameAuxArray[j])[0]){
+				        		//console.log("Same object")
+			        			yaEncontrado = true
+				        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] // search for correct index
+					        	var propertyName = predicate
+					        	var propertyValue = object
+					        	 // avoid deleting existing properties with same key		
+					        	if(jsonObject[objectName][propertyName] !== undefined ){
+				        			if(jsonObject[objectName][propertyName] != propertyValue){
+						        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
+										   var objectToArrayAux = jsonObject[objectName][propertyName]
+										   jsonObject[objectName][propertyName] = []
 
-		            // Add JSON-LD Context property
-		            if(format === "json-ld"){
-		            	jsonObject[objectName]["@context"] = object;
-		            	jsonObject[objectName]["@id"] = subject;
-					} 
+										}
+											
+										jsonObject[objectName][propertyName].push(propertyValue)	
+									}			
+					        	} else {
+									jsonObject[objectName][propertyName] = propertyValue
+					        	}
+								jsonResultsParsed[Object.keys(jsonResultsParsed)[objectNameAuxArray[j][objectName]]] = jsonObject
+				        	}
+			        	}
+		        	}	
+		        	// If the last object in results is the same that this one, merge properties and values
+		        	else if(objectName === last){
+				        //console.log("Same previous object")
+			        	yaEncontrado = true
 
-					//console.log(value)
-					jsonResultsParsed.push(jsonObject)
-					jsonResultsParsedAux.push(objectName)
-					var objAux = { }
-					objAux[objectName] = jsonResultsParsed.length - 1
-	        		objectNameAuxArray.push(objAux)
-	        	}
+		        		var jsonObject = jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]]
+			        	var propertyName = predicate
+			        	var propertyValue = object
+			        			//console.log(objectName)
+				        		//console.log(JSON.stringify(jsonObject)) 
+			        	 // avoid deleting existing properties with same key		
+			        	if(jsonObject[objectName][propertyName] !== undefined ){
+			        		if(jsonObject[objectName][propertyName] != propertyValue){
+				        		if(! Array.isArray (jsonObject[objectName][propertyName]) ){
+								   var objectToArrayAux = jsonObject[objectName][propertyName]
+								   jsonObject[objectName][propertyName] = []
 
-	        	objectNameAux = subject
-	        	yaEncontrado = false
-			        
-			    //console.log(jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]])
-	        }
+								}
+									
+								jsonObject[objectName][propertyName].push(propertyValue)
+							}			
+			        	} else {
+							jsonObject[objectName][propertyName] = propertyValue
+			        	}
+						jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]] = jsonObject
+		        	}
 
-	        var limitNumber = jsonResultsParsed.length
-	        var offsetNumber = 0
-	        try{
-			  	if(limit){
-			  		limitNumber = parseInt(limit)
-			  	}
-			  	if(offset) {
-			  		offsetNumber = parseInt(offset)
-			  	}
-			} catch (e){
-				console.log(e)
+		        	// If this object wasn't processed before, insert it into the results
+		        	if(!yaEncontrado) {
+		        		//console.log("Different object")
+			        	var propertyName = predicate
+			        	var propertyValue = object
+
+			            var jsonObject = { }
+			            var jsonObjectProperty = { }
+			            jsonObjectProperty[propertyName] = propertyValue
+			            jsonObject[objectName] = jsonObjectProperty
+
+			            // Add JSON-LD Context property
+			            if(format === "json-ld"){
+			            	jsonObject[objectName]["@context"] = object;
+			            	jsonObject[objectName]["@id"] = subject;
+						} 
+
+						//console.log(value)
+						jsonResultsParsed.push(jsonObject)
+						jsonResultsParsedAux.push(objectName)
+						var objAux = { }
+						objAux[objectName] = jsonResultsParsed.length - 1
+		        		objectNameAuxArray.push(objAux)
+		        	}
+
+		        	objectNameAux = subject
+		        	yaEncontrado = false
+				        
+				    //console.log(jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]])
+		        }
+
+		        var limitNumber = jsonResultsParsed.length
+		        var offsetNumber = 0
+		        try{
+				  	if(limit){
+				  		limitNumber = parseInt(limit)
+				  	}
+				  	if(offset) {
+				  		offsetNumber = parseInt(offset)
+				  	}
+				} catch (e){
+					console.log(e)
+				}
+
+		        jsonResultsParsed = jsonResultsParsed.slice(offsetNumber, offsetNumber + limitNumber)
+				jsonFinalResults.results = jsonResultsParsed
+				//var returnResults = JSON.stringify(jsonFinalResults)
 			}
-
-	        jsonResultsParsed = jsonResultsParsed.slice(offsetNumber, offsetNumber + limitNumber)
-			jsonFinalResults.results = jsonResultsParsed
-			//var returnResults = JSON.stringify(jsonFinalResults)
 
 			if(format === "csv" || format === "table"){
 				try{
