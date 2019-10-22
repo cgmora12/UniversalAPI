@@ -110,6 +110,10 @@ function basicQueryFill(){
 	});
 	$("#path").on('change', function() {
 
+		$('.jsonpanel').html("");
+		$('#apiquery').val('');
+		$('#query').val('');
+
 		document.getElementById("loader").style.display = "block";
 		document.getElementById("csvTable").style.display = "none";
 		$('.property').empty();
@@ -195,6 +199,11 @@ function basicQueryNotFill(errorObject){
 		error = errorObject
 	}
 	$('#textareaResult').val(error);
+
+	$('.jsonpanel').html("");
+	document.getElementById('textareaResult').style.display = "block";
+	$('#apiquery').val('');
+	$('#query').val('');
 }
 
 function sparqlQuery(){
@@ -327,6 +336,11 @@ function documentationNotReady(errorObject){
 		error = errorObject
 	}
 	$('#textareaResult').val(error);
+
+	$('.jsonpanel').html("");
+	document.getElementById('textareaResult').style.display = "block";
+	$('#apiquery').val('');
+	$('#query').val('');
 }
 
 function addProperty(){
@@ -424,9 +438,12 @@ function send(){
 					if(data.results){
 						if($("#format").val() === "triples"){
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
+							document.getElementById('textareaResult').style.display = "block";
+							$('.jsonpanel').html("");
 						}
 						else if($("#format").val() === "csv"){
 							$('#textareaResult').val(data.results);
+							document.getElementById('textareaResult').style.display = "block";
 						}
 						else if($("#format").val() === "table"){
 							showTable(data.results);
@@ -443,6 +460,10 @@ function send(){
 					}
 					else {
 						$('#textareaResult').val(data.error);
+						$('.jsonpanel').html("");
+						document.getElementById('textareaResult').style.display = "block";
+						$('#apiquery').val('');
+						$('#query').val('');
 					}
 				}
 				else {
@@ -456,11 +477,19 @@ function send(){
 				}
 			} else {
 				$('#textareaResult').val("Error querying the endpoint");
+				$('.jsonpanel').html("");
+				document.getElementById('textareaResult').style.display = "block";
+				$('#apiquery').val('');
+				$('#query').val('');
 			}
 		},
 		error: function(error){
 			console.log(error)
 			$('#textareaResult').val("Error querying the endpoint");
+			$('.jsonpanel').html("");
+			document.getElementById('textareaResult').style.display = "block";
+			$('#apiquery').val('');
+			$('#query').val('');
 		}
 	});
 }
@@ -468,6 +497,7 @@ function send(){
 function showTable(data){
 	
 	$('#textareaResult').val(data);
+	document.getElementById('textareaResult').style.display = "block";
 
 	$('#csvTable').html('');
 
@@ -542,11 +572,19 @@ function sendSparql(){
 						}
 					}
 					else {
-						$('#textareaResult').val(data.error);
+						$('#textareaResult').val(data.error);						
+						$('.jsonpanel').html("");
+						document.getElementById('textareaResult').style.display = "block";
+						$('#apiquery').val('');
+						$('#query').val('');
 					}
 				}
 				else {
-					$('#textareaResult').val('Error querying the endpoint');
+					$('#textareaResult').val('Error querying the endpoint');					
+					$('.jsonpanel').html("");
+					document.getElementById('textareaResult').style.display = "block";
+					$('#apiquery').val('');
+					$('#query').val('');
 				}
 
 				if(data.query){
@@ -558,7 +596,11 @@ function sendSparql(){
 		},
 		error: function(error){
 			console.log(error)
-			$('#textareaResult').val('Error querying the endpoint');
+			$('#textareaResult').val('Error querying the endpoint');			
+			$('.jsonpanel').html("");
+			document.getElementById('textareaResult').style.display = "block";
+			$('#apiquery').val('');
+			$('#query').val('');
 		}
 	});
 }

@@ -1282,7 +1282,11 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 			//
 			var results = data
 			try {
-			    results = JSON.parse(parserXml2json.toJson(data))
+			  	if(defaultFormatJson){
+			  		results = JSON.parse(data)
+			  	} else {
+			    	results = JSON.parse(parserXml2json.toJson(data))
+			  	}
 			} catch (e) {
 			    if (e instanceof SyntaxError) {
 			        console.log(e)
@@ -1309,7 +1313,7 @@ function returnResults(results, sparql){
 	try{
 		if(format === "application%2Fsparql-results%2Bjson" || format === "triples"){
 
-	        var limitNumber = results["sparql"].results.result.length
+	        var limitNumber = results.length
 	        var offsetNumber = 0
 	        try{
 			  	if(limit){
@@ -1321,12 +1325,8 @@ function returnResults(results, sparql){
 			} catch (e){
 				console.log(e)
 			}
-		  	
-		  	if(defaultFormatJson){
-		  		results.results.bindings = results.results.bindings.slice(offsetNumber, offsetNumber + limitNumber)
-		  	} else {
-	        	results["sparql"].results.result = results["sparql"].results.result.slice(offsetNumber, offsetNumber + limitNumber)
-		  	}
+		  			  	
+		  	results = results.slice(offsetNumber, offsetNumber + limitNumber)
 		  	finalResponse({results: results, query: sparql})
 		}
 		else {
@@ -1414,6 +1414,13 @@ function returnResults(results, sparql){
 			            var jsonObjectProperty = { }
 			            jsonObjectProperty[propertyName] = propertyValue
 			            jsonObject[objectName] = jsonObjectProperty
+
+			            // Add JSON-LD Context property
+			            if(format === "json-ld"){
+			            	jsonObject[objectName]["@context"] = jsonResults[i].object.value;
+			            	jsonObject[objectName]["@id"] = jsonResults[i].subject.value;
+						}
+
 						//console.log(value)
 						jsonResultsParsed.push(jsonObject)
 						jsonResultsParsedAux.push(objectName)
