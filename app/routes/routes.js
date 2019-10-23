@@ -22,6 +22,7 @@ var pathProperties = []
 var fieldsArray = []
 var maxResultsForClasses
 var pathsResults = []
+var pathsResultsAux = []
 var end = false;
 var wait, waitPaths, waitProperties
 var request
@@ -272,7 +273,7 @@ function checkEndpoint(callback){
 			    }
 
 		  		if(typeof jsonResults !== 'undefined' && jsonResults){
-					//console.log("return true")
+					console.log("Endpoint working")
 					//console.log(jsonResults)
 					callback(true)
 	    		} else {
@@ -348,7 +349,7 @@ async function getEndpointClassesWithoutProperties(){
 	        getAsyncEndpointClassesWithoutProperties(count)
 	        count++; 
         }
-    }, 100); 
+    }, 250); 
 
 	/*for(var i = 0; !end; i++ && setTimeout(function() {console.log('Wait')}, 3000)){
 		//console.log("before getAsyncResults");
@@ -377,7 +378,7 @@ async function getEndpointClassesWithoutProperties(){
 async function getAsyncEndpointClassesWithoutProperties(counter){
 	//console.log("getAsyncResults" + i);
 	var offsetAsync = (maxResultsForClasses * counter)
-	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync) 
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { { SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' } } ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync) 
 			+ '&timeout=2000'
 	
 	if(defaultFormatJson){
@@ -467,14 +468,15 @@ async function getAsyncEndpointClassesWithoutProperties(counter){
 		  console.log('ERROR: ' + e.message);
 		  end = true
 		  wait[counter] = false
-		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		  //finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
 		
 		req.end()
 	} catch (e){
 		console.log(e)
 		end = true
-		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		wait[counter] = false
+		//finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	}
 }
 
@@ -575,55 +577,84 @@ function getEndpointPropertiesFromClass(pathValue){
 	}
 }
 
+
 // API to SPARQL function
 function generateSparql(pathToResource, properties){
 	// generate query taking path and parameter values into account
 
-	// TODO: use Group by, limit, offset and parallelism to improve performance
-	var sparql = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' + ' SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
-		'> . ?subject ?predicate ?object . ';
+	var sparql
+	var limitBoolean = false, offsetBoolean = false
+
+	//console.log("Limit: " + limit)
+	//console.log("Offset: " + offset)
+	if((typeof limit !== "undefined" && limit) || (typeof offset !== "undefined" && offset)){
+		console.log("Limit and offset")
+		if(offset === "" || isNaN(offset)){
+			offset = 0
+		} else{			
+			offsetBoolean = true
+		}
+
+		sparql = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' 
+				+ ' SELECT DISTINCT ?subject WHERE { { SELECT DISTINCT ?subject WHERE { ?subject rdf:type <' + pathToResource + 
+				'> . ';
 	
-	try{
-		if(typeof properties !== "undefined" && properties){
-			var i 
-			var properties = JSON.parse(properties)
-			//console.log(JSON.stringify(Object.keys(properties)))
-			//console.log(JSON.stringify(Object.values(properties)))
-			for(i = 0; i < Object.keys(properties).length; i++){
-				sparql += ' ?subject <' + Object.keys(properties)[i] + '> ?property' + pathShortener(Object.keys(properties)[i]) + ' '
-				sparql += ' FILTER (?property' + pathShortener(Object.keys(properties)[i]) + ' LIKE \'%' + Object.values(properties)[i] + '%\') '
+		try{
+			if(typeof properties !== "undefined" && properties){
+				var i 
+				var properties = JSON.parse(properties)
+				//console.log(JSON.stringify(Object.keys(properties)))
+				//console.log(JSON.stringify(Object.values(properties)))
+				for(i = 0; i < Object.keys(properties).length; i++){
+					sparql += ' ?subject <' + Object.keys(properties)[i] + '> ?property' + pathShortener(Object.keys(properties)[i]) + ' '
+					sparql += ' FILTER (?property' + pathShortener(Object.keys(properties)[i]) + ' LIKE \'%' + Object.values(properties)[i] + '%\') '
+				}
+			}
+		} catch(e){
+			console.log(e)
+		}
+
+		sparql += ' } ' + ' } } ORDER BY(?subject) '
+
+		console.log("sparql query generated: " + sparql)
+
+		maxResultsForClasses = 1000
+		if(limit && limit.length > 0 && limit > 0){
+			limitBoolean = true
+			if(limit < maxResultsForClasses){
+				maxResultsForClasses = limit
 			}
 		}
-	} catch(e){
-		console.log(e)
+		
+	} else{
+		sparql =  'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' 
+				+ ' SELECT DISTINCT ?subject ?predicate ?object WHERE { { SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
+				'> . ?subject ?predicate ?object . ';
+	
+		try{
+			if(typeof properties !== "undefined" && properties){
+				var i 
+				var properties = JSON.parse(properties)
+				//console.log(JSON.stringify(Object.keys(properties)))
+				//console.log(JSON.stringify(Object.values(properties)))
+				for(i = 0; i < Object.keys(properties).length; i++){
+					sparql += ' ?subject <' + Object.keys(properties)[i] + '> ?property' + pathShortener(Object.keys(properties)[i]) + ' '
+					sparql += ' FILTER (?property' + pathShortener(Object.keys(properties)[i]) + ' LIKE \'%' + Object.values(properties)[i] + '%\') '
+				}
+			}
+		} catch(e){
+			console.log(e)
+		}
+
+		sparql += ' } ' + ' } } ORDER BY(?subject) '
+
+		console.log("sparql query generated: " + sparql)
+
+		maxResultsForClasses = 1000
+
 	}
 
-	sparql += ' } '
 
-	//TODO: apply limit and offset correctly to improve performance 
-	// and call async function passing the generated query
-	/*try{
-		if(limit){
-			sparql += ' LIMIT ' + limit + ' '
-		}
-		if(offset){
-			sparql += ' OFFSET ' + offset + ' '
-		}
-	} catch (e){
-		console.log(e)
-	}*/
-
-	console.log("sparql query generated: " + sparql)
-
-
-
-	maxResultsForClasses = 1000
-	//console.log("Limit: " + limit)
-	/*if(limit && limit.length > 0 && limit > 0){
-		if(limit < maxResultsForClasses){
-			maxResultsForClasses = limit
-		}
-	}*/
 	end = false;
 	pathsResults = []
 	wait = new Array();
@@ -640,11 +671,19 @@ function generateSparql(pathToResource, properties){
         	}
         	//console.log(JSON.stringify(wait))
         	if(!waitBool){
-	            console.log('Return results');
 	        	clearInterval(intervalObject);  
 				//finishedAsync = _.after(count, finalResponse, {results: pathsResults});
 				if(pathsResults && pathsResults.length > 0){
-					returnResults(pathsResults, sparql)
+					if(limitBoolean || offsetBoolean){
+						//console.log("pathsResults: " + JSON.stringify(pathsResults))
+						pathsResultsAux = []
+						for(var pathIndex = 0; pathIndex < pathsResults.length; pathIndex++){
+							generateSparqlFromPath(pathsResults[pathIndex], properties, limitBoolean, offsetBoolean, pathIndex, pathsResults.length)
+						}
+					} else {
+	            		console.log('Return results');
+						returnResults(pathsResults, sparql)
+					}
 				} else {
 			  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
 				}
@@ -658,25 +697,119 @@ function generateSparql(pathToResource, properties){
 		        	getAsyncFinalResults(sparql, count)
 	        	}
 			}*/// else {
-	        	getAsyncFinalResults(sparql, count)
+	        	getAsyncFinalResults(sparql, count, limitBoolean, offsetBoolean)
         	//}    	
 	        count++; 
         }
-    }, 100); 
+    }, 250); 
+
+	
+	
+}
+
+
+// API to SPARQL function
+function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoolean, pathIndex, pathLength){
+	// generate query taking path and parameter values into account
+
+	var sparql
+
+	//console.log("Limit: " + limit)
+	//console.log("Offset: " + offset)
+	if(offset === "" || isNaN(offset)){
+		offset = 0
+	}
+
+	try{
+		//console.log("pathsResult: " + JSON.stringify(pathsResult))
+		sparql = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' + ' SELECT DISTINCT ?predicate ?object WHERE { { SELECT DISTINCT ?predicate ?object WHERE { <' 
+			+ pathsResult.subject.value + '> ?predicate ?object . ';
+
+		if(typeof properties !== "undefined" && properties){
+			var i 
+			var properties = JSON.parse(properties)
+			//console.log(JSON.stringify(Object.keys(properties)))
+			//console.log(JSON.stringify(Object.values(properties)))
+			for(i = 0; i < Object.keys(properties).length; i++){
+				sparql += ' <' + pathsResult + '<' + Object.keys(properties)[i] + '> ?property' + pathShortener(Object.keys(properties)[i]) + ' '
+				sparql += ' FILTER (?property' + pathShortener(Object.keys(properties)[i]) + ' LIKE \'%' + Object.values(properties)[i] + '%\') '
+			}
+		}
+	} catch(e){
+		console.log(e)
+	}
+
+	sparql += ' } ' + ' } } ORDER BY(?predicate)'
+
+	//console.log("sparql query generated: " + sparql)
+
+	maxResultsForClasses = 1000
+
+
+	end = false;
+	//pathsResults = []
+	wait = new Array();
+
+	var count = 0; 
+	var intervalObject = setInterval(function () {
+        //console.log(count, 'seconds passed'); 
+        if (end) { 
+        	var waitBool = false
+        	for(var waitIndex = 0; waitIndex < wait.length; waitIndex++){
+        		if(wait[waitIndex] == true){
+        			waitBool = true
+        		}
+        	}
+        	//console.log(JSON.stringify(wait))
+        	if(!waitBool){
+	        	clearInterval(intervalObject);  
+				//finishedAsync = _.after(count, finalResponse, {results: pathsResults});
+				if(pathIndex >= pathLength - 1){
+	            	console.log('Return results');
+					if(pathsResultsAux && pathsResultsAux.length > 0){
+						returnResults(pathsResultsAux, sparql)
+					} else {
+				  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+					}
+				}
+			}
+        }  else {  
+
+			/*if(limit && limit.length > 0 && limit > 0){
+	        	if(maxResultsForClasses * count > limit){
+	        		end = true;
+	        	} else {
+		        	getAsyncFinalResults(sparql, count)
+	        	}
+			}*/// else {
+	        	getAsyncFinalResults(sparql, count, limitBoolean, offsetBoolean, pathsResult)
+        	//}    	
+	        count++; 
+        }
+    }, 250); 
 
 	
 }
 
-async function getAsyncFinalResults(sparql, counter){
+
+// API to SPARQL function
+async function getAsyncFinalResults(sparql, counter, limitBoolean, offsetBoolean, pathsResult){
 	try{
 		wait[counter] = true
-		var offsetAsync = (maxResultsForClasses * counter)// + offset
-		var httpGet = endpoint + '?query=' + escape(sparql + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync)  
+		
+		var offsetInitial = 0
+		if (offsetBoolean){
+			offsetInitial = offset
+		}
+		var offsetAsync = (maxResultsForClasses * counter) + parseInt(offsetInitial)
+		var httpGet = endpoint + '?query=' + escape(sparql  + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync)  
 					+ '&timeout=5000'
 		if(defaultFormatJson){
 			httpGet += '&format=application%2Fsparql-results%2Bjson' 
 		}
+		
 		//console.log(httpGet)
+		
 
 		// See more about sparql queries at: https://stackoverflow.com/questions/2930246/exploratory-sparql-queries, http://www.ontobee.org/tutorial/sparql and https://codyburleson.com/sparql-examples-select/
 		//http.get(req.query.endpoint + '?default-graph-uri=&query=select+distinct+%3FConcept+where+%7B%5B%5D+a+%3FConcept%7D&format=application%2Fsparql-results%2Bjson&debug=on&timeout=', (resp) => {
@@ -716,8 +849,26 @@ async function getAsyncFinalResults(sparql, counter){
 
 		  		if(typeof jsonPaths !== 'undefined' && jsonPaths && jsonPaths.length > 0){
 		  			for(var pathIndex = 0; pathIndex < jsonPaths.length; pathIndex++){
-		  				pathsResults.push(jsonPaths[pathIndex])
+		  				if((limitBoolean || offsetBoolean) && typeof pathsResult !== "undefined" && pathsResult){
+		  					jsonPaths[pathIndex].subject = pathsResult.subject
+		  					pathsResultsAux.push(jsonPaths[pathIndex])
+		  				} else {
+		  					pathsResults.push(jsonPaths[pathIndex])
+		  				}
 		  			}
+
+		  			if(limitBoolean && typeof pathsResult == "undefined"){
+			  			if(pathsResults.length >= limit){
+			  				end = true;
+			  			}
+			  		} 
+			  		/*if(limitBoolean && typeof pathsResult !== "undefined" && pathsResult){
+			  			if(pathsResultsAux.length >= limit){
+			  				end = true;
+			  				console.log("End true aux: " + pathsResultsAux.length)
+			  			}
+
+		  			}*/
 					wait[counter] = false
 	    		} else {
 	    			end = true
@@ -727,6 +878,7 @@ async function getAsyncFinalResults(sparql, counter){
 				wait[counter] = false
 				end = true;
 			    console.log(e)
+			    console.log(data)
 			}
 		  	
 		  });
@@ -786,7 +938,7 @@ function getEndpointClasses(){
 	        getAsyncEndpointClasses(count)
 	        count++; 
         }
-    }, 100); 
+    }, 250); 
 	
 }
 
@@ -803,7 +955,7 @@ async function getAsyncEndpointClasses(counter){
 	    FILTER (!BOUND(?otherSub ))
 	}*/
 	var offsetAsync = (maxResultsForClasses * counter)
-	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync) 
+	var httpGet = endpoint + '?query=' + escape('SELECT DISTINCT ?class WHERE { { SELECT DISTINCT ?class WHERE { ?s a ?class . }' + ' } } ORDER BY(?class) ' + ' LIMIT ' + maxResultsForClasses + ' OFFSET ' + offsetAsync) 
 			+ '&timeout=2000'
 	if(defaultFormatJson){
 		httpGet += '&format=application%2Fsparql-results%2Bjson' 
@@ -899,7 +1051,7 @@ async function getAsyncEndpointClasses(counter){
 		  console.log('ERROR: ' + e.message);
 		  end = true
 		  wait[counter] = false
-		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		  //finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
 		
 		req.end()
@@ -907,7 +1059,7 @@ async function getAsyncEndpointClasses(counter){
 		console.log(e)
 		end = true
 		wait[counter] = false
-		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		//finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	}
 }
 
@@ -994,14 +1146,14 @@ async function getClassProperties(pathValue, counter){
 		req.on('error', function(e) {
 		  console.log('ERROR: ' + e.message);
 		  waitPaths[counter] = false
-		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		  //finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
 		
 		req.end()
 	} catch (e) {
 	    console.log(e)
 		waitPaths[counter] = false
-	  	finalResponse({error: "API to LOD -> Error querying the endpoint"})
+	  	//finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	}
 }
 
@@ -1055,29 +1207,33 @@ async function getAsyncPropertyExampleValue(pathValue, property, counter){
 			    }
 
 		  		//console.log(JSON.stringify(results))
-		  		var exampleValue = ""
-	            if(defaultFormatJson){
-	            	//console.log("jsonProperty: " + JSON.stringify(jsonProperty))
-	            	exampleValue = escape(jsonProperty[0].o["value"]);
-	            } else{
-	            	if(typeof jsonProperty.binding.uri == "undefined"){
-			  			if(typeof jsonProperty.binding.literal == "undefined"){
-				  			exampleValue = escape(jsonProperty.binding.bnode)
-			  			} else {
-			  				exampleValue = escape(jsonProperty.binding.literal)
-			  			}
-			  		} else {
-			  			exampleValue = escape(jsonProperty.binding.uri)
-			  		}
-	            }
-		  		
-		  		//console.log("exampleValue: " + exampleValue)
-		  		documentation.components.schemas[pathValue].properties[property] = 
-	    			JSON.parse("{\"type\" : \"string\", \"example\" : \"" + exampleValue + "\" }");
+		  		if(jsonProperty.length > 0){
+			  		var exampleValue = ""
+		            if(defaultFormatJson){
+		            	//console.log("jsonProperty: " + JSON.stringify(jsonProperty))
+		            	exampleValue = escape(jsonProperty[0].o["value"]);
+		            } else{
+		            	if(typeof jsonProperty.binding.uri == "undefined"){
+				  			if(typeof jsonProperty.binding.literal == "undefined"){
+					  			exampleValue = escape(jsonProperty.binding.bnode)
+				  			} else {
+				  				exampleValue = escape(jsonProperty.binding.literal)
+				  			}
+				  		} else {
+				  			exampleValue = escape(jsonProperty.binding.uri)
+				  		}
+		            }
+			  		
+			  		//console.log("exampleValue: " + exampleValue)
+			  		documentation.components.schemas[pathValue].properties[property] = 
+		    			JSON.parse("{\"type\" : \"string\", \"example\" : \"" + exampleValue + "\" }");
 
+		  		} 
+					
 				waitPaths[counter] = false
 			} catch (e) {
 			    console.log(e)
+			    console.log(JSON.stringify(data))
 				waitPaths[counter] = false
 			  	//console.log("Error at: " + data)
 			    //finishedAsync()
@@ -1089,14 +1245,14 @@ async function getAsyncPropertyExampleValue(pathValue, property, counter){
 		req.on('error', function(e) {
 		  console.log('ERROR: ' + e.message);
 		  waitPaths[counter] = false
-		  finalResponse({error: "API to LOD -> Error querying the endpoint"})
+		  //finalResponse({error: "API to LOD -> Error querying the endpoint"})
 		});
 		
 		req.end()
 	} catch (e) {
 	    console.log(e)
 		waitPaths[counter] = false
-	  	finalResponse({error: "API to LOD -> Error querying the endpoint"})
+	  	//finalResponse({error: "API to LOD -> Error querying the endpoint"})
 	}
 }
 
@@ -1151,7 +1307,7 @@ function addPathToDoc(pathValue, properties, counter){
     					waitPaths[counter] = false 	
 					}
 		        }
-		    }, 100); 
+		    }, 250); 
 
     	} else{
     		waitPaths[counter] = false
@@ -1313,20 +1469,25 @@ function returnResults(results, sparql){
 	try{
 		if(format === "application%2Fsparql-results%2Bjson" || format === "triples"){
 
-	        var limitNumber = results.length
+	        /*var limitNumber = results.length
 	        var offsetNumber = 0
-	        try{
-			  	if(limit){
-			  		limitNumber = parseInt(limit)
-			  	}
-			  	if(offset) {
-			  		offsetNumber = parseInt(offset)
-			  	}
-			} catch (e){
-				console.log(e)
-			}
-		  			  	
-		  	results = results.slice(offsetNumber, offsetNumber + limitNumber)
+
+			if((typeof limit !== "undefined" && limit) || (typeof offset !== "undefined" && offset)){
+		        try{
+				  	if(limit){
+				  		limitNumber = parseInt(limit)
+				  	}
+				  	if(offset) {
+				  		offsetNumber = parseInt(offset)
+				  	}
+				} catch (e){
+					console.log(e)
+				}
+			  			  	
+			  	results = results.slice(offsetNumber, offsetNumber + limitNumber)
+		  	} else {
+		  		results = results.slice(0, 0 + limitNumber)		  		
+		  	}*/
 		  	finalResponse({results: results, query: sparql})
 		}
 		else {
@@ -1351,6 +1512,8 @@ function returnResults(results, sparql){
 		        		reloj = reloj + 1
 		        	}*/
 				    objectName = pathShortener(jsonResults[i].subject.value)
+				    //console.log("objectName: " + objectName);
+				    //console.log("jsonResults i: " + JSON.stringify(jsonResults[i]))
 		        	//console.log("Check last object name from results: " + JSON.stringify(lastAux))
 		        	var last = jsonResultsParsedAux[jsonResultsParsedAux.length-1]
 		        	if(objectName !== last){
@@ -1433,22 +1596,32 @@ function returnResults(results, sparql){
 				        
 				    //console.log(jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]])
 		        }
-		        var limitNumber = jsonResultsParsed.length
+		        /*var limitNumber = jsonResultsParsed.length
 		        var offsetNumber = 0
-		        try{
-				  	if(limit){
-				  		limitNumber = parseInt(limit)
-				  	}
-				  	if(offset) {
-				  		offsetNumber = parseInt(offset)
-				  	}
-				} catch (e){
-					console.log(e)
-				}
-		        
-		        jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
-				    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
-				}).slice(offsetNumber, offsetNumber + limitNumber)
+
+				if((typeof limit !== "undefined" && limit) || (typeof offset !== "undefined" && offset)){
+			        try{
+					  	if(limit){
+					  		limitNumber = parseInt(limit)
+					  	}
+					  	if(offset) {
+					  		offsetNumber = parseInt(offset)
+					  	}
+					} catch (e){
+						console.log(e)
+					}
+			        
+			        jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
+					    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
+					}).slice(offsetNumber, offsetNumber + limitNumber)
+				} else {
+					jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
+					    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
+					}).slice(0, 0 + limitNumber)
+				}*/
+				jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
+					    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
+					})
 				jsonFinalResults.results = jsonResultsParsed
 				//var returnResults = JSON.stringify(jsonFinalResults)
 				//finalResponse({results: jsonFinalResults, query: sparql})
@@ -1602,22 +1775,32 @@ function returnResults(results, sparql){
 				    //console.log(jsonResultsParsed[Object.keys(jsonResultsParsed)[Object.keys(jsonResultsParsed).length - 1]])
 		        }
 
-		        var limitNumber = jsonResultsParsed.length
+		        /*var limitNumber = jsonResultsParsed.length
 		        var offsetNumber = 0
-		        try{
-				  	if(limit){
-				  		limitNumber = parseInt(limit)
-				  	}
-				  	if(offset) {
-				  		offsetNumber = parseInt(offset)
-				  	}
-				} catch (e){
-					console.log(e)
-				}
 
-		        jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
-				    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
-				}).slice(offsetNumber, offsetNumber + limitNumber)
+				if((typeof limit !== "undefined" && limit) || (typeof offset !== "undefined" && offset)){
+			        try{
+					  	if(limit){
+					  		limitNumber = parseInt(limit)
+					  	}
+					  	if(offset) {
+					  		offsetNumber = parseInt(offset)
+					  	}
+					} catch (e){
+						console.log(e)
+					}
+			        
+			        jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
+					    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
+					}).slice(offsetNumber, offsetNumber + limitNumber)
+				} else {
+					jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
+					    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
+					}).slice(0, 0 + limitNumber)
+				}*/
+				jsonResultsParsed = jsonResultsParsed.sort(function (a, b) {
+					    return (Object.keys(a)[0]).localeCompare((Object.keys(b)[0]));
+					})
 				jsonFinalResults.results = jsonResultsParsed
 				//var returnResults = JSON.stringify(jsonFinalResults)
 			}

@@ -444,9 +444,11 @@ function send(){
 						else if($("#format").val() === "csv"){
 							$('#textareaResult').val(data.results);
 							document.getElementById('textareaResult').style.display = "block";
+							$('.jsonpanel').html("");
 						}
 						else if($("#format").val() === "table"){
 							showTable(data.results);
+							$('.jsonpanel').html("");
 						}
 						else {
 							$('#textareaResult').val(JSON.stringify(data.results, null, 2));
@@ -468,6 +470,7 @@ function send(){
 				}
 				else {
 					showTable(data);
+					$('.jsonpanel').html("");
 				}
 
 				if(data.query){
