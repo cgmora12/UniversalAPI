@@ -580,6 +580,7 @@ function getEndpointPropertiesFromClass(pathValue){
 
 // API to SPARQL function
 function generateSparql(pathToResource, properties){
+	console.log("generateSparql");
 	// generate query taking path and parameter values into account
 
 	var sparql
@@ -588,7 +589,7 @@ function generateSparql(pathToResource, properties){
 	//console.log("Limit: " + limit)
 	//console.log("Offset: " + offset)
 	if((typeof limit !== "undefined" && limit) || (typeof offset !== "undefined" && offset)){
-		console.log("Limit and offset")
+		//console.log("Limit and offset")
 		if(offset === "" || isNaN(offset)){
 			offset = 0
 		} else{			
@@ -619,11 +620,12 @@ function generateSparql(pathToResource, properties){
 		console.log("sparql query generated: " + sparql)
 
 		maxResultsForClasses = 1000
-		if(limit && limit.length > 0 && limit > 0){
+		if(limit && limit > 0){
 			limitBoolean = true
-			if(limit < maxResultsForClasses){
+			// Limit works different, it is applied to results
+			/*if(limit < maxResultsForClasses){
 				maxResultsForClasses = limit
-			}
+			}*/
 		}
 		
 	} else{
@@ -710,6 +712,7 @@ function generateSparql(pathToResource, properties){
 
 // API to SPARQL function
 function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoolean, pathIndex, pathLength){
+	console.log("generateSparqlFromPath: " + JSON.stringify(pathsResult));
 	// generate query taking path and parameter values into account
 
 	var sparql
@@ -720,6 +723,7 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 		offset = 0
 	}
 
+	var propertiesObj = properties
 	try{
 		//console.log("pathsResult: " + JSON.stringify(pathsResult))
 		sparql = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' + ' SELECT DISTINCT ?predicate ?object WHERE { { SELECT DISTINCT ?predicate ?object WHERE { <' 
@@ -727,12 +731,21 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 
 		if(typeof properties !== "undefined" && properties){
 			var i 
-			var properties = JSON.parse(properties)
+			propertiesObj = JSON.parse(properties)
 			//console.log(JSON.stringify(Object.keys(properties)))
 			//console.log(JSON.stringify(Object.values(properties)))
-			for(i = 0; i < Object.keys(properties).length; i++){
-				sparql += ' <' + pathsResult + '<' + Object.keys(properties)[i] + '> ?property' + pathShortener(Object.keys(properties)[i]) + ' '
-				sparql += ' FILTER (?property' + pathShortener(Object.keys(properties)[i]) + ' LIKE \'%' + Object.values(properties)[i] + '%\') '
+		}
+	} catch(e){
+		//console.log(e)
+	}
+
+
+	try{
+
+		if(typeof properties !== "undefined" && properties){
+			for(i = 0; i < Object.keys(propertiesObj).length; i++){
+				sparql += '<' + pathsResult.subject.value + '> <' + Object.keys(propertiesObj)[i] + '> ?property' + pathShortener(Object.keys(propertiesObj)[i]) + ' '
+				sparql += ' FILTER (?property' + pathShortener(Object.keys(propertiesObj)[i]) + ' LIKE \'%' + Object.values(propertiesObj)[i] + '%\') '
 			}
 		}
 	} catch(e){
@@ -767,6 +780,7 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 				if(pathIndex >= pathLength - 1){
 	            	console.log('Return results');
 					if(pathsResultsAux && pathsResultsAux.length > 0){
+						console.log('pathsResultsAux: ' + JSON.stringify(pathsResultsAux))
 						returnResults(pathsResultsAux, sparql)
 					} else {
 				  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
@@ -794,6 +808,7 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 
 // API to SPARQL function
 async function getAsyncFinalResults(sparql, counter, limitBoolean, offsetBoolean, pathsResult){
+	console.log("getAsyncFinalResults");
 	try{
 		wait[counter] = true
 		
@@ -852,23 +867,19 @@ async function getAsyncFinalResults(sparql, counter, limitBoolean, offsetBoolean
 		  				if((limitBoolean || offsetBoolean) && typeof pathsResult !== "undefined" && pathsResult){
 		  					jsonPaths[pathIndex].subject = pathsResult.subject
 		  					pathsResultsAux.push(jsonPaths[pathIndex])
+				  			console.log("push pathsResultsAux")
 		  				} else {
-		  					pathsResults.push(jsonPaths[pathIndex])
+		  					// getAsyncResults generic or with limit search for subjects
+		  					if(limitBoolean && pathsResults.length >= limit){
+				  				end = true;
+				  				console.log("end")
+				  			} else{
+		  						pathsResults.push(jsonPaths[pathIndex])
+				  				console.log("push pathsResults")
+					  		}
 		  				}
 		  			}
 
-		  			if(limitBoolean && typeof pathsResult == "undefined"){
-			  			if(pathsResults.length >= limit){
-			  				end = true;
-			  			}
-			  		} 
-			  		/*if(limitBoolean && typeof pathsResult !== "undefined" && pathsResult){
-			  			if(pathsResultsAux.length >= limit){
-			  				end = true;
-			  				console.log("End true aux: " + pathsResultsAux.length)
-			  			}
-
-		  			}*/
 					wait[counter] = false
 	    		} else {
 	    			end = true
