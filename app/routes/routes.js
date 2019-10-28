@@ -712,7 +712,7 @@ function generateSparql(pathToResource, properties){
 
 // API to SPARQL function
 function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoolean, pathIndex, pathLength){
-	console.log("generateSparqlFromPath: " + JSON.stringify(pathsResult));
+	//console.log("generateSparqlFromPath: " + JSON.stringify(pathsResult));
 	// generate query taking path and parameter values into account
 
 	var sparql
@@ -780,7 +780,7 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 				if(pathIndex >= pathLength - 1){
 	            	console.log('Return results');
 					if(pathsResultsAux && pathsResultsAux.length > 0){
-						console.log('pathsResultsAux: ' + JSON.stringify(pathsResultsAux))
+						//console.log('pathsResultsAux: ' + JSON.stringify(pathsResultsAux))
 						returnResults(pathsResultsAux, sparql)
 					} else {
 				  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
@@ -808,7 +808,7 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 
 // API to SPARQL function
 async function getAsyncFinalResults(sparql, counter, limitBoolean, offsetBoolean, pathsResult){
-	console.log("getAsyncFinalResults");
+	//console.log("getAsyncFinalResults");
 	try{
 		wait[counter] = true
 		
@@ -867,15 +867,12 @@ async function getAsyncFinalResults(sparql, counter, limitBoolean, offsetBoolean
 		  				if((limitBoolean || offsetBoolean) && typeof pathsResult !== "undefined" && pathsResult){
 		  					jsonPaths[pathIndex].subject = pathsResult.subject
 		  					pathsResultsAux.push(jsonPaths[pathIndex])
-				  			console.log("push pathsResultsAux")
 		  				} else {
 		  					// getAsyncResults generic or with limit search for subjects
 		  					if(limitBoolean && pathsResults.length >= limit){
 				  				end = true;
-				  				console.log("end")
 				  			} else{
 		  						pathsResults.push(jsonPaths[pathIndex])
-				  				console.log("push pathsResults")
 					  		}
 		  				}
 		  			}
@@ -889,7 +886,7 @@ async function getAsyncFinalResults(sparql, counter, limitBoolean, offsetBoolean
 				wait[counter] = false
 				end = true;
 			    console.log(e)
-			    console.log(data)
+			    //console.log(data)
 			}
 		  	
 		  });
@@ -1051,7 +1048,7 @@ async function getAsyncEndpointClasses(counter){
 		    	
 	    	} catch (e){
 				console.log(e)
-				console.log("results: " + JSON.stringify(results))
+				//console.log("results: " + JSON.stringify(results))
 		  		end = true
 				wait[counter] = false
 			}
@@ -1244,7 +1241,7 @@ async function getAsyncPropertyExampleValue(pathValue, property, counter){
 				waitPaths[counter] = false
 			} catch (e) {
 			    console.log(e)
-			    console.log(JSON.stringify(data))
+			    //console.log(JSON.stringify(data))
 				waitPaths[counter] = false
 			  	//console.log("Error at: " + data)
 			    //finishedAsync()
