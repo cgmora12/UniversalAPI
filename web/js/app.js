@@ -102,7 +102,10 @@ function basicQueryFill(){
 
 	// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonResults.paths
 	var options = jsonResults//Object.keys(jsonResults.paths["/"].get.parameters[1].examples);
-	var optionsOrdered = options.sort(dynamicSort("value"))
+	var optionsOrdered = options
+	try{
+		optionsOrdered = options.sort(dynamicSort("value"))
+	} catch (e){}
 	$('#path').empty();
 	$('#path').append($('<option></option>'));
 	$.each(optionsOrdered, function(i, p) {
@@ -141,7 +144,10 @@ function basicQueryFill(){
 							for(i = 0; i < jsonProperties.length; i++){
 								options.push({id: jsonProperties[i].id, name: jsonProperties[i].name})
 							}
-							var optionsOrdered = options.sort(dynamicSort("name"))
+							var optionsOrdered = options
+							try{
+								optionsOrdered = options.sort(dynamicSort("name"))
+							} catch (e){}
 							// ordenar options alfabeticamente pero cuidado al obtener dicha posicion de jsonProperties
 							$.each(optionsOrdered, function(i, p) {
 							    $('.property').append($('<option></option>').val(p.id).html(p.name + " (" + p.id + ")"));

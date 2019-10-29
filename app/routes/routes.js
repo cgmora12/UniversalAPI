@@ -482,6 +482,7 @@ async function getAsyncEndpointClassesWithoutProperties(counter){
 
 // UAPI guided function
 function getEndpointPropertiesFromClass(pathValue){
+	//TODO: do in parallel with limit and offset
 	//console.log("getEndpointPropertiesFromClass " + pathValue)
 	try{
 		sparql = 'SELECT DISTINCT ?property WHERE { ?s a <' + pathValue + '>; ?property ?o . }'
@@ -687,7 +688,7 @@ function generateSparql(pathToResource, properties){
 						returnResults(pathsResults, sparql)
 					}
 				} else {
-			  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+					returnResults({}, sparql)
 				}
 			}
         }  else {  
@@ -783,7 +784,7 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 						//console.log('pathsResultsAux: ' + JSON.stringify(pathsResultsAux))
 						returnResults(pathsResultsAux, sparql)
 					} else {
-				  		finalResponse({error: "API to LOD -> Error querying the endpoint"})
+						returnResults({}, sparql)
 					}
 				}
 			}
