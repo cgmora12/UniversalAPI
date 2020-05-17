@@ -274,7 +274,7 @@ function checkEndpoint(callback){
 
 		  		if(typeof jsonResults !== 'undefined' && jsonResults){
 					console.log("Endpoint working")
-					//console.log(jsonResults)
+					//console.log(JSON.stringify(jsonResults))
 					callback(true)
 	    		} else {
 					//console.log("return false")
@@ -584,7 +584,7 @@ function generateSparql(pathToResource, properties){
 	console.log("generateSparql");
 	// generate query taking path and parameter values into account
 
-	var sparql
+	var sparql, sparqlAux
 	var limitBoolean = false, offsetBoolean = false
 
 	//console.log("Limit: " + limit)
@@ -597,28 +597,28 @@ function generateSparql(pathToResource, properties){
 			offsetBoolean = true
 		}
 
-		sparql = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' 
+		sparqlAux = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' 
 				+ ' SELECT DISTINCT ?subject WHERE { { SELECT DISTINCT ?subject WHERE { ?subject rdf:type <' + pathToResource + 
 				'> . ';
 	
 		try{
 			if(typeof properties !== "undefined" && properties){
 				var i 
-				var properties = JSON.parse(properties)
+				var propertiesJSON0 = JSON.parse(properties)
 				//console.log(JSON.stringify(Object.keys(properties)))
 				//console.log(JSON.stringify(Object.values(properties)))
-				for(i = 0; i < Object.keys(properties).length; i++){
-					sparql += ' ?subject <' + Object.keys(properties)[i] + '> ?property' + pathShortener(Object.keys(properties)[i]) + ' '
-					sparql += ' FILTER (?property' + pathShortener(Object.keys(properties)[i]) + ' LIKE \'%' + Object.values(properties)[i] + '%\') '
+				for(i = 0; i < Object.keys(propertiesJSON0).length; i++){
+					sparqlAux += ' ?subject <' + Object.keys(propertiesJSON0)[i] + '> ?property' + pathShortener(Object.keys(propertiesJSON0)[i]) + ' '
+					sparqlAux += ' FILTER (?property' + pathShortener(Object.keys(propertiesJSON0)[i]) + ' LIKE \'%' + Object.values(propertiesJSON0)[i] + '%\') '
 				}
 			}
 		} catch(e){
 			console.log(e)
 		}
 
-		sparql += ' } ' + ' } } ORDER BY(?subject) '
+		sparqlAux += ' } ' + ' } } ORDER BY(?subject) '
 
-		console.log("sparql query generated: " + sparql)
+		console.log("sparql query generated: " + sparqlAux)
 
 		maxResultsForClasses = 1000
 		if(limit && limit > 0){
@@ -629,33 +629,56 @@ function generateSparql(pathToResource, properties){
 			}*/
 		}
 		
-	} else{
-		sparql =  'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' 
+	} else {
+		maxResultsForClasses = 1000		
+
+		sparqlAux =  'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' 
 				+ ' SELECT DISTINCT ?subject ?predicate ?object WHERE { { SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
 				'> . ?subject ?predicate ?object . ';
-	
+
 		try{
 			if(typeof properties !== "undefined" && properties){
 				var i 
-				var properties = JSON.parse(properties)
-				//console.log(JSON.stringify(Object.keys(properties)))
-				//console.log(JSON.stringify(Object.values(properties)))
-				for(i = 0; i < Object.keys(properties).length; i++){
-					sparql += ' ?subject <' + Object.keys(properties)[i] + '> ?property' + pathShortener(Object.keys(properties)[i]) + ' '
-					sparql += ' FILTER (?property' + pathShortener(Object.keys(properties)[i]) + ' LIKE \'%' + Object.values(properties)[i] + '%\') '
+				var propertiesJSON = JSON.parse(properties)
+				//console.log(JSON.stringify(Object.keys(propertiesJSON)))
+				//console.log(JSON.stringify(Object.values(propertiesJSON)))
+				for(i = 0; i < Object.keys(propertiesJSON).length; i++){
+					sparqlAux += ' ?subject <' + Object.keys(propertiesJSON)[i] + '> ?property' + pathShortener(Object.keys(propertiesJSON)[i]) + ' '
+					sparqlAux += ' FILTER (?property' + pathShortener(Object.keys(propertiesJSON)[i]) + ' LIKE \'%' + Object.values(propertiesJSON)[i] + '%\') '
 				}
 			}
 		} catch(e){
 			console.log(e)
 		}
 
-		sparql += ' } ' + ' } } ORDER BY(?subject) '
+		sparqlAux += ' } ' + ' } } ORDER BY(?subject) '
 
 		console.log("sparql query generated: " + sparql)
-
-		maxResultsForClasses = 1000
-
 	}
+
+	sparql =  'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' 
+			+ ' SELECT DISTINCT ?subject ?predicate ?object WHERE { { SELECT DISTINCT ?subject ?predicate ?object WHERE { ?subject rdf:type <' + pathToResource + 
+			'> . ?subject ?predicate ?object . ';
+
+	try{
+		if(typeof properties !== "undefined" && properties){
+			var i 
+			var propertiesJSON2 = JSON.parse(properties)
+			//console.log(JSON.stringify(Object.keys(propertiesJSON2)))
+			//console.log(JSON.stringify(Object.values(propertiesJSON2)))
+			for(i = 0; i < Object.keys(propertiesJSON2).length; i++){
+				sparql += ' ?subject <' + Object.keys(propertiesJSON2)[i] + '> ?property' + pathShortener(Object.keys(propertiesJSON2)[i]) + ' '
+				sparql += ' FILTER (?property' + pathShortener(Object.keys(propertiesJSON2)[i]) + ' LIKE \'%' + Object.values(propertiesJSON2)[i] + '%\') '
+			}
+		}
+	} catch(e){
+		console.log(e)
+	}
+
+	sparql += ' } ' + ' } } ORDER BY(?subject) '
+
+	console.log("sparql query generated: " + sparql)
+
 
 
 	end = false;
@@ -681,7 +704,7 @@ function generateSparql(pathToResource, properties){
 						//console.log("pathsResults: " + JSON.stringify(pathsResults))
 						pathsResultsAux = []
 						for(var pathIndex = 0; pathIndex < pathsResults.length; pathIndex++){
-							generateSparqlFromPath(pathsResults[pathIndex], properties, limitBoolean, offsetBoolean, pathIndex, pathsResults.length)
+							generateSparqlFromPath(sparql, pathsResults[pathIndex], properties, limitBoolean, offsetBoolean, pathIndex, pathsResults.length)
 						}
 					} else {
 	            		console.log('Return results');
@@ -700,7 +723,7 @@ function generateSparql(pathToResource, properties){
 		        	getAsyncFinalResults(sparql, count)
 	        	}
 			}*/// else {
-	        	getAsyncFinalResults(sparql, count, limitBoolean, offsetBoolean)
+	        	getAsyncFinalResults(sparqlAux, count, limitBoolean, offsetBoolean)
         	//}    	
 	        count++; 
         }
@@ -712,11 +735,11 @@ function generateSparql(pathToResource, properties){
 
 
 // API to SPARQL function
-function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoolean, pathIndex, pathLength){
+function generateSparqlFromPath(sparql, pathsResult, properties, limitBoolean, offsetBoolean, pathIndex, pathLength){
 	//console.log("generateSparqlFromPath: " + JSON.stringify(pathsResult));
 	// generate query taking path and parameter values into account
 
-	var sparql
+	var sparqlAux
 
 	//console.log("Limit: " + limit)
 	//console.log("Offset: " + offset)
@@ -727,7 +750,7 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 	var propertiesObj = properties
 	try{
 		//console.log("pathsResult: " + JSON.stringify(pathsResult))
-		sparql = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' + ' SELECT DISTINCT ?predicate ?object WHERE { { SELECT DISTINCT ?predicate ?object WHERE { <' 
+		sparqlAux = 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' + ' SELECT DISTINCT ?predicate ?object WHERE { { SELECT DISTINCT ?predicate ?object WHERE { <' 
 			+ pathsResult.subject.value + '> ?predicate ?object . ';
 
 		if(typeof properties !== "undefined" && properties){
@@ -745,15 +768,15 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 
 		if(typeof properties !== "undefined" && properties){
 			for(i = 0; i < Object.keys(propertiesObj).length; i++){
-				sparql += '<' + pathsResult.subject.value + '> <' + Object.keys(propertiesObj)[i] + '> ?property' + pathShortener(Object.keys(propertiesObj)[i]) + ' '
-				sparql += ' FILTER (?property' + pathShortener(Object.keys(propertiesObj)[i]) + ' LIKE \'%' + Object.values(propertiesObj)[i] + '%\') '
+				sparqlAux += '<' + pathsResult.subject.value + '> <' + Object.keys(propertiesObj)[i] + '> ?property' + pathShortener(Object.keys(propertiesObj)[i]) + ' '
+				sparqlAux += ' FILTER (?property' + pathShortener(Object.keys(propertiesObj)[i]) + ' LIKE \'%' + Object.values(propertiesObj)[i] + '%\') '
 			}
 		}
 	} catch(e){
 		console.log(e)
 	}
 
-	sparql += ' } ' + ' } } ORDER BY(?predicate)'
+	sparqlAux += ' } ' + ' } } ORDER BY(?predicate)'
 
 	//console.log("sparql query generated: " + sparql)
 
@@ -797,7 +820,7 @@ function generateSparqlFromPath(pathsResult, properties, limitBoolean, offsetBoo
 		        	getAsyncFinalResults(sparql, count)
 	        	}
 			}*/// else {
-	        	getAsyncFinalResults(sparql, count, limitBoolean, offsetBoolean, pathsResult)
+	        	getAsyncFinalResults(sparqlAux, count, limitBoolean, offsetBoolean, pathsResult)
         	//}    	
 	        count++; 
         }
@@ -1440,7 +1463,7 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 
 		  // The whole response has been received. Print out the result.
 		  resp.on('end', () => {
-		  	//console.log("data: " + data);
+		  	console.log("data: " + data);
 		  	//response.send('API to LOD -> OK <br><br>'+ JSON.stringify(data))
 
 			// Return data to users formatted in JSON
@@ -1456,6 +1479,15 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 			    if (e instanceof SyntaxError) {
 			        console.log(e)
 			    }
+			    try{
+			    	if(defaultFormatJson){
+			    		defaultFormatJson = false;
+				  		results = JSON.parse(parserXml2json.toJson(data)).sparql.results.result
+				  		//console.log(JSON.stringify(results));
+				  	} else {
+				    	results = JSON.parse(data)
+				  	}
+			    } catch(e2){}
 			}
 		  	
 		  	returnResults(results, sparql);
@@ -1474,7 +1506,7 @@ function sparqlQuery(sparql, sparqlGraph, debug, timeout){
 
 function returnResults(results, sparql){
 	console.log("format: " + format)
-	//console.log("results: " + JSON.stringify(results).substring(0, 1000))
+	console.log("results: " + JSON.stringify(results).substring(0, 1000))
 	try{
 		if(format === "application%2Fsparql-results%2Bjson" || format === "triples"){
 
@@ -1643,7 +1675,7 @@ function returnResults(results, sparql){
 			  	var objectNameAuxArray = []
 			  	var jsonResultsParsedAux = []
 			  	var objectNameAux
-			  	var objectName
+			  	var objectName = ""
 			  	var yaEncontrado = false
 			  	var i
 			  	for(i = 0; i < jsonResults.length; i++)
@@ -1656,7 +1688,7 @@ function returnResults(results, sparql){
 		        		reloj = reloj + 1
 		        	}*/
 
-		        	var object, predicate, subject			    
+		        	var object, predicate, subject = ""		    
 				    for(var bindingIndex = 0; bindingIndex < jsonResults[i].binding.length; bindingIndex++){
 						if(jsonResults[i].binding[bindingIndex].name === "subject"){
 							if(typeof jsonResults[i].binding[bindingIndex].uri !== "undefined"){
@@ -1697,7 +1729,7 @@ function returnResults(results, sparql){
 
 		        	//console.log("Check last object name from results: " + JSON.stringify(lastAux))
 		        	var last = jsonResultsParsedAux[jsonResultsParsedAux.length-1]
-		        	if(objectName !== last){
+		        	if(objectName !== last || objectName === ""){
 		        		// Search for the same JSON Object processed before (but not last one)
 		        		var j
 			        	for(j=0; j < objectNameAuxArray.length; j++){
